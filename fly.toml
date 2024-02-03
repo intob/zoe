@@ -1,0 +1,37 @@
+# fly.toml app configuration file generated for lstn on 2024-02-03T13:10:59+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "lstn"
+primary_region = "ams"
+
+[build]
+  dockerfile = "fly.Dockerfile"
+
+[deploy]
+  strategy = "immediate"
+
+[env]
+  EVENTS_FILE = "/data/events"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+
+[[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+[services.concurrency]
+    type = "requests"
+    hard_limit = 100000
+    soft_limit = 50000
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
