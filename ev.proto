@@ -9,8 +9,8 @@ option go_package = "./ev";
 // because we use a hash function
 // to ensure uniform & complete distribution.
 message Ev {
-  uint32 time = 1; // good until year 2106
-  Type type = 2;
+  EvType evType = 1;
+  uint32 time = 2; // good until year 2106
   fixed32 usr = 3;
   fixed32 sess = 4;
   uint32 cid = 5;
@@ -18,7 +18,7 @@ message Ev {
   optional float scrolled = 7;
 }
 
-enum Type {
+enum EvType {
   LOAD = 0; // Once per page load per session
   UNLOAD = 1; // Once per page unload per session
   TIME = 2; // Time spent on a page

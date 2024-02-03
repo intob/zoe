@@ -20,14 +20,14 @@ RUN adduser \
     --uid "${UID}" \
     "${USER}"
 
-WORKDIR $GOPATH/src/lstn/
-COPY . .
+WORKDIR /app
+COPY . /app
 
 RUN go mod download
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags='-w -s -extldflags "-static"' -a \
-    -o /go/bin/lstn .
+    -o /app/lstn .
 
 FROM scratch
 
@@ -35,9 +35,10 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
-COPY --from=builder /go/bin/lstn /go/bin/lstn
+COPY --from=builder /app/lstn /lstn
+COPY --from=builder /app/client.js /client.js
 
 # Use an unprivileged user
 #USER appuser:appuser
 
-ENTRYPOINT ["/go/bin/lstn"]
+ENTRYPOINT ["/lstn"]
