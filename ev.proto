@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "./ev";
+
+// Ev represents a tracking event.
+// As there are millions, we must aim for
+// optimum use of space.
+// User & session ids are fixed-length
+// because we use a hash function
+// to ensure uniform & complete distribution.
+message Ev {
+  uint32 time = 1; // good until year 2106
+  Type type = 2;
+  fixed32 usr = 3;
+  fixed32 sess = 4;
+  uint32 cid = 5;
+  optional uint32 pageSeconds = 6;
+  optional float scrolled = 7;
+}
+
+enum Type {
+  LOAD = 0; // Once per page load per session
+  UNLOAD = 1; // Once per page unload per session
+  TIME = 2; // Time spent on a page
+}
