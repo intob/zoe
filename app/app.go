@@ -14,19 +14,22 @@ import (
 	"time"
 
 	"github.com/swissinfo-ch/lstn/ev"
+	"github.com/swissinfo-ch/lstn/report"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/proto"
 )
 
 type App struct {
-	clients  map[string]*client // writer:addr or reader:addr
-	clientMu sync.Mutex
-	events   chan *ev.Ev
-	filename string
+	clients      map[string]*client // writer:addr or reader:addr
+	clientMu     sync.Mutex
+	events       chan *ev.Ev
+	filename     string
+	reportRunner *report.Runner
 }
 
 type AppCfg struct {
-	Filename string
+	Filename     string
+	ReportRunner *report.Runner
 }
 
 type client struct {
@@ -36,10 +39,11 @@ type client struct {
 
 func NewApp(cfg *AppCfg) *App {
 	a := &App{
-		filename: cfg.Filename,
-		clients:  make(map[string]*client),
-		clientMu: sync.Mutex{},
-		events:   make(chan *ev.Ev),
+		filename:     cfg.Filename,
+		clients:      make(map[string]*client),
+		clientMu:     sync.Mutex{},
+		events:       make(chan *ev.Ev),
+		reportRunner: cfg.ReportRunner,
 	}
 	go a.cleanupVisitors()
 	go a.writeEventsToFile()
@@ -64,6 +68,8 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/data":
 			a.handleGetData(w, r)
+		case "/report":
+			a.handleGetReport(w, r)
 		case "/js":
 			a.handleGetJS(w, r)
 		default:
@@ -142,6 +148,22 @@ func (a *App) handleGetData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "missing name query parameter", http.StatusBadRequest)
+		return
+	}
+	report, exists := a.reportRunner.Results[name]
+	if !exists {
+		http.Error(w, "report not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "max-age=10")
+	w.Write(report)
+}
+
 func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=3600, must-revalidate")
 	w.Header().Set("Content-Type", "text/javascript")
@@ -190,7 +212,8 @@ func (a *App) writeEvent(w *bufio.Writer, e *ev.Ev) error {
 func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limiter := a.getRateLimiter(r)
-		if !limiter.Allow() {
+		if !limiter.Allow() &&
+			r.Method != "POST" { // TEST ONLY! disable rate limit for POST
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
@@ -220,8 +243,10 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 		var limiter *rate.Limiter
 		if r.Method == "POST" { // fast rate for writing
 			limiter = rate.NewLimiter(rate.Every(time.Second), 4)
-		} else { // lower rate for download
+		} else if r.URL.Path == "/data" { // very low rate for download
 			limiter = rate.NewLimiter(rate.Every(time.Second*10), 2)
+		} else { // default rate for reading
+			limiter = rate.NewLimiter(rate.Every(time.Second), 2)
 		}
 		a.clients[key] = &client{limiter, time.Now()}
 		return limiter

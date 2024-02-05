@@ -3,7 +3,6 @@ package report
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"os"
 
@@ -12,6 +11,12 @@ import (
 )
 
 type Runner struct {
+	Results  map[string][]byte
+	filename string
+	jobs     []*Job
+}
+
+type RunnerCfg struct {
 	Filename string
 	Jobs     []*Job
 }
@@ -22,23 +27,30 @@ type Job struct {
 	events chan *ev.Ev
 }
 
+func NewRunner(cfg *RunnerCfg) *Runner {
+	return &Runner{
+		Results:  make(map[string][]byte),
+		filename: cfg.Filename,
+		jobs:     cfg.Jobs,
+	}
+}
+
 func (r *Runner) Run() {
-	for _, job := range r.Jobs {
+	for _, job := range r.jobs {
 		job.events = make(chan *ev.Ev)
 		go func(job *Job) {
 			report, err := job.Report.Generate(job.events)
 			if err != nil {
 				panic(err)
 			}
-			// TODO: write report to file to be served
-			fmt.Println(job.Name, string(report))
+			r.Results[job.Name] = report
 		}(job)
 	}
 	r.readEvents()
 }
 
 func (r *Runner) readEvents() {
-	file, err := os.Open(r.Filename)
+	file, err := os.Open(r.filename)
 	if err != nil {
 		panic(err)
 	}
@@ -61,11 +73,11 @@ func (r *Runner) readEvents() {
 		if err := proto.Unmarshal(data, e); err != nil {
 			panic(err)
 		}
-		for _, job := range r.Jobs {
+		for _, job := range r.jobs {
 			job.events <- e
 		}
 	}
-	for _, job := range r.Jobs {
+	for _, job := range r.jobs {
 		close(job.events)
 	}
 }

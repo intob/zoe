@@ -20,29 +20,32 @@ func main() {
 		panic(err)
 	}
 	file.Close()
-	a := app.NewApp(&app.AppCfg{
-		Filename: filename,
-	})
-	go reports(filename, time.Second*10)
-	a.Start()
-}
 
-func reports(filename string, every time.Duration) {
-	r := &report.Runner{
+	r := report.NewRunner(&report.RunnerCfg{
 		Filename: filename,
 		Jobs: []*report.Job{
 			{
-				Name: "views last 30d",
+				Name: "views-last-30d",
 				Report: &report.Views{
 					Filter: func(e *ev.Ev) bool {
-						return report.YoungerThan(e, time.Hour*24*30)
+						return report.YoungerThan(e, time.Hour*24*30) &&
+							e.EvType == ev.EvType_LOAD
 					},
 				},
 			},
 		},
-	}
-	for {
-		r.Run()
-		time.Sleep(every)
-	}
+	})
+	go func() {
+		for {
+			r.Run()
+			time.Sleep(time.Second * 5)
+		}
+	}()
+
+	a := app.NewApp(&app.AppCfg{
+		Filename:     filename,
+		ReportRunner: r,
+	})
+
+	a.Start()
 }

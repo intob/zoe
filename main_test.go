@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"runtime"
+	"strconv"
 	"sync"
 	"testing"
 )
@@ -32,20 +34,22 @@ func testIntegration(url string, concurrency, count int) {
 		}(i, wg)
 		fmt.Printf("worker %d started\n", i)
 	}
+	usr := strconv.FormatUint(uint64(rand.Uint32()), 10)
+	cid := strconv.FormatUint(uint64(rand.Uint32()), 10)
 	for i := 0; i < count; i++ {
 		r, _ := http.NewRequest("POST", url, nil)
-		r.Header.Set("LSTN_TYPE", "LOAD")
-		r.Header.Set("LSTN_USR", "12345")
-		r.Header.Set("LSTN_SESS", "23456")
-		r.Header.Set("LSTN_CID", "34567")
+		r.Header.Set("X_TYPE", "LOAD")
+		r.Header.Set("X_USR", usr)
+		r.Header.Set("X_SESS", strconv.FormatUint(uint64(rand.Uint32()), 10))
+		r.Header.Set("X_CID", cid)
 		jobs <- r
 	}
 	close(jobs)
 	wg.Wait()
 }
 
-func TestOnFly(t *testing.T) {
-	testIntegration("https://lstn.fly.dev", runtime.NumCPU()*8, count)
+func TestProd(t *testing.T) {
+	testIntegration("https://lstn.swissinfo.ch", runtime.NumCPU()*8, count)
 }
 
 func TestLocal(t *testing.T) {

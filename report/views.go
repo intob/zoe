@@ -6,6 +6,7 @@ import (
 	"github.com/swissinfo-ch/lstn/ev"
 )
 
+// Views is a report that counts the number of views per content id
 type Views struct {
 	Filter func(*ev.Ev) bool
 }
@@ -13,9 +14,6 @@ type Views struct {
 func (v *Views) Generate(events <-chan *ev.Ev) ([]byte, error) {
 	cidViews := make(map[uint32]uint32)
 	for e := range events {
-		if e.EvType != ev.EvType_LOAD {
-			continue
-		}
 		if v.Filter(e) {
 			_, exists := cidViews[e.Cid]
 			if !exists {

@@ -38,4 +38,4 @@ jobs:
         ./update-aws.sh lstn.swissinfo.ch \
             --ipv6 ${{ steps.deploy.outputs.ipv6 }} \
             --ipv4 ${{ steps.deploy.outputs.ipv4 }} \
-            --hosted-zone-id ${{ secrets.HOSTED_ZONE_ID }}
+            --aws-hosted-zone-id ${{ secrets.AWS_HOSTED_ZONE_ID }}
