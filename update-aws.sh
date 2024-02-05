@@ -5,17 +5,15 @@
 #
 
 RECORD_NAME=$1
+AWS_HOSTED_ZONE_ID=$2
 
-while getopts ":ipv4:ipv6:aws-hosted-zone-id" opt; do
+while getopts ":ipv4:ipv6:" opt; do
   case $opt in
     ipv4)
       IPV4_ADDRESS=$OPTARG
       ;;
     ipv6)
       IPV6_ADDRESS=$OPTARG
-      ;;
-    aws-hosted-zone-id)
-      AWS_HOSTED_ZONE_ID=$OPTARG
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
