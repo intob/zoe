@@ -39,3 +39,8 @@ jobs:
             lstn.swissinfo.ch \
             --ipv6 $IPV6 \
             --ipv4 $IPV4
+      env:
+        RECORD_NAME: lstn.swissinfo.ch
+        AWS_HOSTED_ZONE_ID: ${{ secrets.AWS_HOSTED_ZONE_ID }}
+        IPV6: ${{ env.IPV6 }}
+        IPV4: ${{ env.IPV4 }}
