@@ -27,8 +27,8 @@ jobs:
       id: deploy
       run: |
         flyctl deploy --remote-only
-        echo "IPV6=\$(flyctl info --format \"{{.IPAddresses.IPv6}}\")" >> $GITHUB_ENV
-        echo "IPV4=\$(flyctl info --format \"{{.IPAddresses.IPv4}}\")" >> $GITHUB_ENV
+        echo "IPV6=$(flyctl info --format \"{{.IPAddresses.IPv6}})" >> $GITHUB_ENV
+        echo "IPV4=$(flyctl info --format \"{{.IPAddresses.IPv4}})" >> $GITHUB_ENV
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
