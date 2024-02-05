@@ -6,7 +6,6 @@
 
 RECORD_NAME=$1
 
-# Records must point to app's addresses on fly.io
 while getopts ":ipv4:ipv6:aws-hosted-zone-id" opt; do
   case $opt in
     ipv4)
@@ -23,7 +22,6 @@ while getopts ":ipv4:ipv6:aws-hosted-zone-id" opt; do
       ;;
   esac
 done
-
 
 # Check if records exist
 AAAA_RECORDS=$(aws route53 list-resource-record-sets --hosted-zone-id $AWS_HOSTED_ZONE_ID --query "ResourceRecordSets[?Type == 'AAAA'] | [?contains(Name, '$RECORD_NAME')]")

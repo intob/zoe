@@ -10,9 +10,10 @@ Events are unmarshalled from json into a very efficient protobuf encoding.
 
 ## Deploy from scratch
 ```bash
-fly launch # using fly.toml
+fly launch # using fly.toml, otherwise defaults are fine
 fly certs create lstn.swissinfo.ch
 ```
+Then run the Deploy workflow. This will update the AWS records in the swissinfo.ch zone.
 
 ## Maximum message size calculation
 Adding the maximum sizes together:
