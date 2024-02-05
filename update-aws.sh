@@ -5,7 +5,6 @@
 #
 
 RECORD_NAME=$1
-AWS_HOSTED_ZONE_ID=$2
 
 echo "Updating DNS records for $RECORD_NAME in hosted zone $AWS_HOSTED_ZONE_ID"
 
