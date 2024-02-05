@@ -1,4 +1,7 @@
-## Thanks to https://github.com/chemidy/smallest-secured-golang-docker-image
+# Thanks to https://github.com/chemidy/smallest-secured-golang-docker-image
+#
+# STEP 1 build executable binary
+#
 FROM golang:alpine as builder
 
 RUN apk update \
@@ -7,18 +10,6 @@ RUN apk update \
       ca-certificates \
       tzdata \
     && update-ca-certificates
-
-ENV USER=appuser
-ENV UID=10001
-# See https://stackoverflow.com/a/55757473/12429735
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    "${USER}"
 
 WORKDIR /app
 COPY . /app
@@ -29,16 +20,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags='-w -s -extldflags "-static"' -a \
     -o /app/lstn .
 
+#
+# STEP 2 build small image
+#
 FROM scratch
 
+# Copy zoneinfo for time zone support
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+# Copy zoneinfo for time zone support
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /etc/group /etc/group
+# Copy binary and app files
 COPY --from=builder /app/lstn /lstn
 COPY --from=builder /app/client.js /client.js
-
-# Use an unprivileged user
-#USER appuser:appuser
 
 ENTRYPOINT ["/lstn"]
