@@ -2,7 +2,6 @@ package report
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -59,31 +58,44 @@ func (r *Runner) readEvents() error {
 		return fmt.Errorf("failed to open file for reading: %w", err)
 	}
 	defer file.Close()
+
 	reader := bufio.NewReader(file)
 	for {
-		length, err := binary.ReadUvarint(reader)
+		// Read the length as a single byte
+		lengthByte, err := reader.ReadByte()
 		if err != nil {
 			if err == io.EOF {
-				break
+				break // End of file reached, stop reading
 			}
-			fmt.Println("failed to read ev length, will truncate broken data")
-			return fmt.Errorf("failed to read ev length: %w", err)
+			return fmt.Errorf("failed to read event length: %w", err)
 		}
+
+		// Convert the length byte to an integer
+		length := int(lengthByte)
+
+		// Allocate a slice for the data of the event
 		data := make([]byte, length)
 		_, err = io.ReadFull(reader, data)
 		if err != nil {
-			return fmt.Errorf("failed to read ev payload: %w", err)
+			return fmt.Errorf("failed to read event payload: %w", err)
 		}
+
+		// Unmarshal the protobuf event
 		e := &ev.Ev{}
 		if err := proto.Unmarshal(data, e); err != nil {
 			return fmt.Errorf("failed to unmarshal protobuf: %w", err)
 		}
+
+		// Send the event to all jobs
 		for _, job := range r.jobs {
 			job.events <- e
 		}
 	}
+
+	// Close all job event channels after reading all events
 	for _, job := range r.jobs {
 		close(job.events)
 	}
+
 	return nil
 }

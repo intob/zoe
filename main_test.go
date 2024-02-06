@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 )
 
 const count = 1000 // make 1k requests
@@ -44,12 +44,11 @@ func testIntegration(url string, concurrency, count int) {
 		r.Header.Set("X_SESS", strconv.FormatUint(uint64(rand.Uint32()), 10))
 		r.Header.Set("X_CID", cid)
 		jobs <- r
-		time.Sleep(time.Millisecond * 10)
 	}
 	close(jobs)
 	wg.Wait()
 }
 
-func TestProd(t *testing.T) {
-	testIntegration("https://lstn.swissinfo.ch", runtime.NumCPU()*8, count)
+func TestIntegration(t *testing.T) {
+	testIntegration(os.Getenv("LSTN_ORIGIN"), runtime.NumCPU(), count)
 }

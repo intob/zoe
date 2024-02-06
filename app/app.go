@@ -1,10 +1,9 @@
 package app
 
 import (
-	"bufio"
 	"compress/gzip"
 	"context"
-	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -186,39 +185,47 @@ func (a *App) writeEventsToFile() {
 		log.Fatalf("failed to open file: %v", err)
 	}
 	defer file.Close()
-	writer := bufio.NewWriter(file)
-	defer writer.Flush()
 	for {
 		select {
 		case e := <-a.events:
-			if err := a.writeEvent(writer, e); err != nil {
+			if err := a.writeEvent(file, e); err != nil {
 				panic(fmt.Sprintf("failed to write event: %v", err))
 			}
-		case <-time.After(5 * time.Second):
-			writer.Flush()
 		case <-a.ctx.Done():
 			return
 		}
 	}
 }
 
-func (a *App) writeEvent(w *bufio.Writer, e *ev.Ev) error {
+func (a *App) writeEvent(w io.Writer, e *ev.Ev) error {
+	// Marshal the protobuf event.
 	data, err := proto.Marshal(e)
 	if err != nil {
 		return fmt.Errorf("failed to marshal protobuf: %w", err)
 	}
-	sizeBuf := make([]byte, binary.MaxVarintLen64)
-	sizeSize := binary.PutUvarint(sizeBuf, uint64(len(data)))
-	buf := make([]byte, 0, sizeSize+len(data))
-	buf = append(buf, sizeBuf[:sizeSize]...)
-	buf = append(buf, data...)
+
+	// Check if data length exceeds the maximum size of 35 bytes.
+	// TODO: calculate this from the protobuf definition.
+	if len(data) > 35 {
+		return fmt.Errorf("event size %d exceeds maximum of 35 bytes", len(data))
+	}
+
+	// Prepend the size as a single byte.
+	// Since we know the maximum size is 35 bytes, a single byte for size is sufficient.
+	sizeByte := byte(len(data))         // Convert the length of data to a single byte.
+	buf := make([]byte, 0, 1+len(data)) // Allocate buffer for size byte and data.
+	buf = append(buf, sizeByte)         // Append size byte.
+	buf = append(buf, data...)          // Append the actual event data.
+
+	// Write the buffer to the io.Writer.
 	n, err := w.Write(buf)
 	if err != nil {
 		return fmt.Errorf("failed to write to buffer: %w", err)
 	}
 	if n != len(buf) {
-		return fmt.Errorf("failed to write all bytes to buffer")
+		return errors.New("failed to write all bytes to buffer")
 	}
+
 	return nil
 }
 
