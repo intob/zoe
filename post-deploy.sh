@@ -9,8 +9,7 @@ IPS_LIST=$(flyctl ips list)
 IPV6=$(echo "$IPS_LIST" | awk '/v6/{print $2}')
 IPV4=$(echo "$IPS_LIST" | awk '/v4/{print $2}')
 
-echo "Updating DNS records for $RECORD_NAME"
-echo "IPv4: $IPV4 / IPv6: $IPV6"
+echo "Updating DNS records for $FQDN ($RECORD_NAME) with IPv4: $IPV4 and IPv6: $IPV6"
 
 # Check if records exist
 AAAA_RECORDS=$(aws route53 list-resource-record-sets --hosted-zone-id $AWS_HOSTED_ZONE_ID --query "ResourceRecordSets[?Type == 'AAAA'] | [?contains(Name, '$RECORD_NAME')]")
@@ -41,5 +40,5 @@ fi
 # Issue TLS certificate if not already issued
 #
 
-echo "Issuing TLS certificate for $RECORD_NAME"
+echo "Issuing TLS certificate for $FQDN"
 flyctl certs create $FQDN
