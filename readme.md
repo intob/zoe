@@ -23,7 +23,7 @@ AWS_HOSTED_ZONE_ID
 FLY_API_TOKEN
 ```
 ### Run Deploy workflow
-This will update the AWS records in the swissinfo.ch zone & issue a TLS certificate.
+This will update the DNS records in the swissinfo.ch hosted zone & issue a TLS certificate on Fly.
 
 ## Maximum message size calculation
 Adding the maximum sizes together:
