@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/swissinfo-ch/lstn/app"
@@ -42,10 +46,37 @@ func main() {
 		}
 	}()
 
+	ctx := getCtx()
+
 	a := app.NewApp(&app.AppCfg{
 		Filename:     filename,
 		ReportRunner: r,
+		Ctx:          ctx,
+		Kill:         r.Kill,
+		Killed:       r.Killed,
 	})
+	go a.Start()
 
-	a.Start()
+	<-ctx.Done()
+	fmt.Println("app shutting down")
+}
+
+// cancelOnKillSig cancels the context on os interrupt kill signal
+func cancelOnKillSig(sigs chan os.Signal, cancel context.CancelFunc) {
+	switch <-sigs {
+	case syscall.SIGINT:
+		fmt.Println("\nreceived SIGINT")
+	case syscall.SIGTERM:
+		fmt.Println("\nreceived SIGTERM")
+	}
+	cancel()
+}
+
+// getCtx returns a root context that awaits a kill signal from os
+func getCtx() context.Context {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	go cancelOnKillSig(sigs, cancel)
+	return ctx
 }

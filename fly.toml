@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for lstn-black-log-6888 on 2024-02-05T23:44:04+01:00
+# fly.toml app configuration file generated for lstn-spring-surf-504 on 2024-02-06T04:35:23+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'lstn-black-log-6888'
+app = 'lstn-spring-surf-504'
 primary_region = 'ams'
 
 [build]

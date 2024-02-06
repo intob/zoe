@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const count = 10000 // make 10k requests
+const count = 1000 // make 1k requests
 
 func testIntegration(url string, concurrency, count int) {
 	jobs := make(chan *http.Request)
@@ -49,9 +49,5 @@ func testIntegration(url string, concurrency, count int) {
 }
 
 func TestProd(t *testing.T) {
-	testIntegration("https://lstn.swissinfo.ch", runtime.NumCPU()*8, count)
-}
-
-func TestLocal(t *testing.T) {
-	testIntegration("http://127.0.0.1:8080", runtime.NumCPU(), count)
+	testIntegration("http://localhost:8080", runtime.NumCPU()*8, count)
 }

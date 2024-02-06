@@ -3,6 +3,7 @@ package app
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -25,11 +26,17 @@ type App struct {
 	events       chan *ev.Ev
 	filename     string
 	reportRunner *report.Runner
+	ctx          context.Context
+	kill         chan struct{}
+	killed       chan struct{}
 }
 
 type AppCfg struct {
 	Filename     string
 	ReportRunner *report.Runner
+	Ctx          context.Context
+	Kill         chan struct{}
+	Killed       chan struct{}
 }
 
 type client struct {
@@ -44,6 +51,9 @@ func NewApp(cfg *AppCfg) *App {
 		clientMu:     sync.Mutex{},
 		events:       make(chan *ev.Ev),
 		reportRunner: cfg.ReportRunner,
+		ctx:          cfg.Ctx,
+		kill:         cfg.Kill,
+		killed:       cfg.Killed,
 	}
 	go a.cleanupVisitors()
 	go a.writeEventsToFile()
@@ -56,10 +66,21 @@ func (a *App) Start() {
 		a.corsMiddleware(
 			http.HandlerFunc(a.handleRequest))))
 	fmt.Println("app listening http on :8080")
-	err := http.ListenAndServe(":8080", mux)
-	if err != nil {
-		panic(err)
+	server := &http.Server{Addr: ":8080", Handler: mux}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen:%+s\n", err)
+		}
+	}()
+
+	select {
+	case <-a.ctx.Done():
+		fmt.Println("app received kill signal (ctx done)")
+	case <-a.kill:
+		fmt.Println("app received kill signal (kill chan)")
 	}
+	a.shutdown(server)
+	close(a.killed)
 }
 
 func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
@@ -179,15 +200,17 @@ func (a *App) writeEventsToFile() {
 	writer := bufio.NewWriter(file)
 	defer writer.Flush()
 	defer file.Close()
-	ticker := time.NewTicker(2 * time.Second)
 	for {
 		select {
 		case e := <-a.events:
 			if err := a.writeEvent(writer, e); err != nil {
 				fmt.Println("failed to write event:", err)
 			}
-		case <-ticker.C:
+		case <-time.After(10 * time.Second):
 			writer.Flush()
+		case <-a.ctx.Done():
+			writer.Flush()
+			return
 		}
 	}
 }
@@ -202,9 +225,12 @@ func (a *App) writeEvent(w *bufio.Writer, e *ev.Ev) error {
 	buf := make([]byte, 0, sizeSize+len(data))
 	buf = append(buf, sizeBuf[:sizeSize]...)
 	buf = append(buf, data...)
-	_, err = w.Write(buf)
+	n, err := w.Write(buf)
 	if err != nil {
 		return fmt.Errorf("failed to write to buffer: %w", err)
+	}
+	if n != len(buf) {
+		return fmt.Errorf("failed to write all bytes to buffer")
 	}
 	return nil
 }
@@ -257,13 +283,28 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 
 func (a *App) cleanupVisitors() {
 	for {
-		time.Sleep(10 * time.Second)
-		a.clientMu.Lock()
-		for key, client := range a.clients {
-			if time.Since(client.lastSeen) > 10*time.Second {
-				delete(a.clients, key)
+		select {
+		case <-a.ctx.Done():
+			return
+		case <-time.After(10 * time.Second):
+			a.clientMu.Lock()
+			for key, client := range a.clients {
+				if time.Since(client.lastSeen) > 10*time.Second {
+					delete(a.clients, key)
+				}
 			}
+			a.clientMu.Unlock()
 		}
-		a.clientMu.Unlock()
 	}
+}
+
+func (a *App) shutdown(server *http.Server) {
+	// Create a context with timeout for the server shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// Attempt to gracefully shutdown the server
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server Shutdown Failed:%+s", err)
+	}
+	fmt.Println("server shutdown gracefully")
 }
