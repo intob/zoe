@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -72,7 +71,9 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		switch r.URL.Path {
-		case "/report":
+		case "/":
+			a.handleRoot(w, r)
+		case "/r":
 			a.handleGetReport(w, r)
 		case "/js":
 			a.handleGetJS(w, r)
@@ -84,74 +85,8 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handle event input
-func (a *App) handlePost(w http.ResponseWriter, r *http.Request) {
-	evType, ok := ev.EvType_value[r.Header.Get("X_TYPE")]
-	if !ok {
-		http.Error(w, "invalid header X_TYPE, must be one of LOAD, UNLOAD or TIME", http.StatusBadRequest)
-		return
-	}
-	usr, err := strconv.ParseUint(r.Header.Get("X_USR"), 10, 32)
-	if err != nil {
-		http.Error(w, fmt.Errorf("err to parse uint32 in header X_USR: %w", err).Error(), http.StatusBadRequest)
-		return
-	}
-	sess, err := strconv.ParseUint(r.Header.Get("X_SESS"), 10, 32)
-	if err != nil {
-		http.Error(w, fmt.Errorf("err to parse uint32 in header X_SESS: %w", err).Error(), http.StatusBadRequest)
-		return
-	}
-	cid, err := strconv.ParseUint(r.Header.Get("X_CID"), 10, 32)
-	if err != nil {
-		http.Error(w, fmt.Errorf("err to parse uint32 in header X_CID: %w", err).Error(), http.StatusBadRequest)
-		return
-	}
-	e := &ev.Ev{
-		Time:   uint32(time.Now().Unix()),
-		EvType: ev.EvType(evType),
-		Usr:    uint32(usr),
-		Sess:   uint32(sess),
-		Cid:    uint32(cid),
-	}
-	switch e.EvType {
-	case ev.EvType_UNLOAD:
-		scrolled, err := strconv.ParseFloat(r.Header.Get("X_SCROLLED"), 32)
-		if err != nil {
-			http.Error(w, fmt.Errorf("failed to parse X_SCROLLED: %w", err).Error(), http.StatusBadRequest)
-			return
-		}
-		scrolled32 := float32(scrolled)
-		e.Scrolled = &scrolled32
-	case ev.EvType_TIME:
-		pageSeconds, err := strconv.ParseUint(r.Header.Get("X_PAGE_SECONDS"), 10, 32)
-		if err != nil {
-			http.Error(w, fmt.Errorf("failed to parse X_PAGE_SECONDS: %w", err).Error(), http.StatusBadRequest)
-			return
-		}
-		pageSeconds32 := uint32(pageSeconds)
-		e.PageSeconds = &pageSeconds32
-	}
-	a.events <- e
-}
-
-func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-	if name == "" {
-		http.Error(w, "missing name query parameter", http.StatusBadRequest)
-		return
-	}
-	report, exists := a.reportRunner.Results[name]
-	if !exists {
-		http.Error(w, "report not found", http.StatusNotFound)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "max-age=10")
-	w.Write(report)
-}
-
 func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "max-age=3600, must-revalidate")
+	w.Header().Set("Cache-Control", "max-age=3600")
 	w.Header().Set("Content-Type", "text/javascript")
 	http.ServeFile(w, r, "client.js")
 }

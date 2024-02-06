@@ -29,9 +29,10 @@ func main() {
 		Filename: filename,
 		Jobs: []*report.Job{
 			{
-				Name: "views-last-30d",
+				Name: "views-last-30d-cutoff10",
 				Report: &report.Views{
-					Cutoff: 10,
+					Cutoff:        10,
+					EstimatedSize: 1000,
 					Filter: func(e *ev.Ev) bool {
 						return report.YoungerThan(e, time.Hour*24*30) &&
 							e.EvType == ev.EvType_LOAD
@@ -44,6 +45,16 @@ func main() {
 					N: 10,
 					Filter: func(e *ev.Ev) bool {
 						return report.YoungerThan(e, time.Hour*24*30) &&
+							e.EvType == ev.EvType_LOAD
+					},
+				},
+			},
+			{
+				Name: "subset-last-7d-max100k",
+				Report: &report.Subset{
+					Limit: 100000,
+					Filter: func(e *ev.Ev) bool {
+						return report.YoungerThan(e, time.Hour*24*7) &&
 							e.EvType == ev.EvType_LOAD
 					},
 				},

@@ -1,7 +1,9 @@
 # lstn
 An app that efficiently stores a very large number of tracking events.
-
 Reports are generated periodically, and can be requested over http.
+
+Scaling? Later, if we need.
+Snapshots >> s3 asap.
 
 ## Deploy from scratch
 ### Launch app on Fly
@@ -38,11 +40,6 @@ To store on disk, we also need an additional byte as a length prefix.
 
 Total maximum size including length prefix: **36 bytes**
 
-## GET /data - download gzipped file
-You can download the whole file for your own processing, if you like.
-
-In future, we can export some helper functions to make it easier to handle the file.
-
 ## Why HTTP headers, no request body?
 TLDR; it saves bandwidth
 
@@ -63,4 +60,14 @@ HTTP/3, which builds on the QUIC transport protocol, uses QPACK for header compr
 While HTTP/1.1 does not compress headers, modern HTTP versions (HTTP/2 and HTTP/3) include mechanisms for header compression (HPACK and QPACK, respectively). These improvements significantly enhance the efficiency of web communication, especially for applications that make frequent or numerous HTTP requests.
 
 ## To do
-- Consider writing gzipped pages to the file to save space.
+
+### (maybe one day) Protect against slow poisoning
+Poisoning of the data is hard to prevent, and rather comically so as this is opensource. If needed... we can always cross-reference.
+
+
+### (maybe) Write gzipped pages to filesystem (one file)
+Currently, every event is written to the filesystem individually without compression.
+
+# From David
+- More meaningful & insightful analytics
+- Which cids often group together in a single session?

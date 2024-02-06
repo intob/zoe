@@ -37,8 +37,8 @@ func testIntegration(origin string, concurrency, total int) {
 			fmt.Printf("worker %d done\n", i)
 			wg.Done()
 		}(i, wg)
-		fmt.Printf("worker %d started\n", i)
 	}
+	fmt.Printf("making %d requests to %s using %d workers\n", total, origin, concurrency)
 	usr := strconv.FormatUint(uint64(rand.Uint32()), 10)
 	for i := 0; i < total; i++ {
 		r, _ := http.NewRequest("POST", origin, nil)

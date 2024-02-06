@@ -10,15 +10,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Runner struct {
-	Results  map[string][]byte
-	filename string
-	jobs     []*Job
-}
-
 type RunnerCfg struct {
 	Filename string
 	Jobs     []*Job
+}
+
+type Runner struct {
+	results  map[string][]byte
+	filename string
+	jobs     []*Job
 }
 
 type Job struct {
@@ -29,7 +29,7 @@ type Job struct {
 
 func NewRunner(cfg *RunnerCfg) *Runner {
 	return &Runner{
-		Results:  make(map[string][]byte),
+		results:  make(map[string][]byte),
 		filename: cfg.Filename,
 		jobs:     cfg.Jobs,
 	}
@@ -43,13 +43,18 @@ func (r *Runner) Run() {
 			if err != nil {
 				panic(err)
 			}
-			r.Results[job.Name] = report
+			r.results[job.Name] = report
 		}(job)
 	}
 	err := r.readEvents()
 	if err != nil {
 		panic(fmt.Sprintf("failed to read events: %v", err))
 	}
+}
+
+func (r *Runner) Results(key string) ([]byte, bool) {
+	result, exists := r.results[key]
+	return result, exists
 }
 
 func (r *Runner) readEvents() error {
