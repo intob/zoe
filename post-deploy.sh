@@ -20,21 +20,24 @@ A_RECORDS=$(aws route53 list-resource-record-sets --hosted-zone-id $AWS_HOSTED_Z
 
 if [ "$AAAA_RECORDS" == "[]" ]; then
   echo "AAAA record does not exist. Creating..."
-  aws route53 change-resource-record-sets \
+else
+  echo "AAAA record exists. Updating..."
+fi
+
+aws route53 change-resource-record-sets \
       --hosted-zone-id $AWS_HOSTED_ZONE_ID \
       --change-batch "{\"Changes\":[{\"Action\":\"UPSERT\",\"ResourceRecordSet\":{\"Name\":\"$RECORD_NAME\",\"Type\":\"AAAA\",\"TTL\":60,\"ResourceRecords\":[{\"Value\":\"$IPV6\"}]}}]}"
-else
-  echo "AAAA record exists. Not updating."
-fi
+
 
 if [ "$A_RECORDS" == "[]" ]; then
   echo "A record does not exist. Creating..."
-  aws route53 change-resource-record-sets \
+else
+  echo "A record exists. Updating..."
+fi
+
+aws route53 change-resource-record-sets \
       --hosted-zone-id $AWS_HOSTED_ZONE_ID \
       --change-batch "{\"Changes\":[{\"Action\":\"UPSERT\",\"ResourceRecordSet\":{\"Name\":\"$RECORD_NAME\",\"Type\":\"A\",\"TTL\":60,\"ResourceRecords\":[{\"Value\":\"$IPV4\"}]}}]}"
-else
-  echo "A record exists. Not updating."
-fi
 
 #
 # Issue TLS certificate if not already issued
