@@ -42,4 +42,4 @@ fi
 #
 
 echo "Issuing TLS certificate for $RECORD_NAME"
-fly certs create $RECORD_NAME
+flyctl certs create $RECORD_NAME
