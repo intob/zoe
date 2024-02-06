@@ -60,3 +60,7 @@ HTTP/3, which builds on the QUIC transport protocol, uses QPACK for header compr
 ### Summary
 
 While HTTP/1.1 does not compress headers, modern HTTP versions (HTTP/2 and HTTP/3) include mechanisms for header compression (HPACK and QPACK, respectively). These improvements significantly enhance the efficiency of web communication, especially for applications that make frequent or numerous HTTP requests.
+
+## To do
+- Figure out why the file becomes corrupted when writing without any rate limit, this is wrong
+- Consider writing gzipped pages to the file to save space (~1000 events, flushed on report)

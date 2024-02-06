@@ -45,16 +45,17 @@ func NewApp(cfg *AppCfg) *App {
 		filename:     cfg.Filename,
 		clients:      make(map[string]*client),
 		clientMu:     sync.Mutex{},
-		events:       make(chan *ev.Ev),
+		events:       make(chan *ev.Ev, 100),
 		reportRunner: cfg.ReportRunner,
 		ctx:          cfg.Ctx,
 	}
 	go a.cleanupVisitors()
 	go a.writeEventsToFile()
+	go a.serve()
 	return a
 }
 
-func (a *App) Start() {
+func (a *App) serve() {
 	mux := http.NewServeMux()
 	mux.Handle("/", a.rateLimitMiddleware(
 		a.corsMiddleware(
@@ -66,7 +67,6 @@ func (a *App) Start() {
 			log.Fatalf("listen:%+s\n", err)
 		}
 	}()
-
 	<-a.ctx.Done()
 	a.shutdown(server)
 }
@@ -183,19 +183,18 @@ func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
 func (a *App) writeEventsToFile() {
 	file, err := os.OpenFile(a.filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		log.Fatalf("Failed to open file: %v", err)
+		log.Fatalf("failed to open file: %v", err)
 	}
+	defer file.Close()
 	writer := bufio.NewWriter(file)
 	defer writer.Flush()
-	defer file.Close()
 	for {
 		select {
 		case e := <-a.events:
 			if err := a.writeEvent(writer, e); err != nil {
-				fmt.Println("failed to write event:", err)
-				return
+				panic(fmt.Sprintf("failed to write event: %v", err))
 			}
-		case <-time.After(10 * time.Second):
+		case <-time.After(5 * time.Second):
 			writer.Flush()
 		case <-a.ctx.Done():
 			return

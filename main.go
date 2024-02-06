@@ -48,12 +48,11 @@ func main() {
 
 	ctx := getCtx()
 
-	a := app.NewApp(&app.AppCfg{
+	app.NewApp(&app.AppCfg{
 		Filename:     filename,
 		ReportRunner: r,
 		Ctx:          ctx,
 	})
-	go a.Start()
 
 	<-ctx.Done()
 	fmt.Println("app shutting down")
