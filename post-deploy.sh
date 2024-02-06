@@ -36,3 +36,10 @@ if [ "$A_RECORDS" == "[]" ]; then
 else
   echo "A record exists. Not updating."
 fi
+
+#
+# Issue TLS certificate if not already issued
+#
+
+echo "Issuing TLS certificate for $RECORD_NAME"
+fly certs create $RECORD_NAME
