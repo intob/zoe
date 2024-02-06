@@ -41,4 +41,4 @@ fi
 #
 
 echo "Issuing TLS certificate for $FQDN"
-flyctl certs create $FQDN
+flyctl certs create $FQDN || true # ignore error if cert already exists
