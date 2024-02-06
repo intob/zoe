@@ -33,7 +33,6 @@ jobs:
     - name: Post Deploy
       run: chmod +x post-deploy.sh && ./post-deploy.sh
       env:
-        FQDN: lstn.swissinfo.ch
-        RECORD_NAME: lstn
+        RECORD_NAME: lstn.swissinfo.ch
         AWS_HOSTED_ZONE_ID: ${{ secrets.AWS_HOSTED_ZONE_ID }}
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
