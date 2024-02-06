@@ -30,8 +30,8 @@ jobs:
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-    - name: Update DNS Records
-      run: chmod +x dns.sh && ./dns.sh
+    - name: Post Deploy
+      run: chmod +x post-deploy.sh && ./post-deploy.sh
       env:
         RECORD_NAME: ${{ env.RECORD_NAME }}
         AWS_HOSTED_ZONE_ID: ${{ secrets.AWS_HOSTED_ZONE_ID }}
