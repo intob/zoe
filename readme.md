@@ -9,10 +9,21 @@ You can get the entire file gzipped (even more than a year of tracking data coul
 Events are unmarshalled from json into a very efficient protobuf encoding.
 
 ## Deploy from scratch
+### Launch app on Fly
+The defaults are fine.
 ```bash
-fly launch # using fly.toml, otherwise defaults are fine
+fly launch
 ```
-Then run the Deploy workflow. This will update the AWS records in the swissinfo.ch zone & issue a TLS certificate.
+### Define secrets in GitHub repo
+These are necessary for GitHub workflows.
+```
+AWS_PROD_ACCESS_KEY_ID
+AWS_PROD_SECRET_ACCESS_KEY
+AWS_HOSTED_ZONE_ID
+FLY_API_TOKEN
+```
+### Run Deploy workflow
+This will update the AWS records in the swissinfo.ch zone & issue a TLS certificate.
 
 ## Maximum message size calculation
 Adding the maximum sizes together:
@@ -28,9 +39,12 @@ optional float scrolled: 5 bytes (if present)
 Total maximum size without optional fields: **24 bytes**
 Total maximum size with all optional fields: **35 bytes**
 
-## Gzipped file
+## Download gzipped file
+You can download the whole file for your own processing, if you like.
 
 ## Why HTTP headers, not JSON body?
+TLDR; it saves bandwidth
+
 HTTP headers themselves are not compressed by default in the HTTP/1.1 protocol. In HTTP/1.1, both request and response headers are sent as plain text. This means that if you send a request or a response with a lot of headers or cookies, the overhead can be quite significant, especially for small request/response bodies.
 
 However, with the introduction of HTTP/2 and later HTTP/3, there are mechanisms to compress headers:
