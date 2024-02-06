@@ -27,16 +27,12 @@ type App struct {
 	filename     string
 	reportRunner *report.Runner
 	ctx          context.Context
-	kill         chan struct{}
-	killed       chan struct{}
 }
 
 type AppCfg struct {
 	Filename     string
 	ReportRunner *report.Runner
 	Ctx          context.Context
-	Kill         chan struct{}
-	Killed       chan struct{}
 }
 
 type client struct {
@@ -52,8 +48,6 @@ func NewApp(cfg *AppCfg) *App {
 		events:       make(chan *ev.Ev),
 		reportRunner: cfg.ReportRunner,
 		ctx:          cfg.Ctx,
-		kill:         cfg.Kill,
-		killed:       cfg.Killed,
 	}
 	go a.cleanupVisitors()
 	go a.writeEventsToFile()
@@ -73,14 +67,8 @@ func (a *App) Start() {
 		}
 	}()
 
-	select {
-	case <-a.ctx.Done():
-		fmt.Println("app received kill signal (ctx done)")
-	case <-a.kill:
-		fmt.Println("app received kill signal (kill chan)")
-	}
+	<-a.ctx.Done()
 	a.shutdown(server)
-	close(a.killed)
 }
 
 func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
@@ -205,11 +193,11 @@ func (a *App) writeEventsToFile() {
 		case e := <-a.events:
 			if err := a.writeEvent(writer, e); err != nil {
 				fmt.Println("failed to write event:", err)
+				return
 			}
 		case <-time.After(10 * time.Second):
 			writer.Flush()
 		case <-a.ctx.Done():
-			writer.Flush()
 			return
 		}
 	}
@@ -304,7 +292,7 @@ func (a *App) shutdown(server *http.Server) {
 	defer cancel()
 	// Attempt to gracefully shutdown the server
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server Shutdown Failed:%+s", err)
+		panic(fmt.Sprintf("server shutdown failed: %v", err))
 	}
 	fmt.Println("server shutdown gracefully")
 }

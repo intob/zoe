@@ -42,7 +42,7 @@ func main() {
 	go func() {
 		for {
 			r.Run()
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 2)
 		}
 	}()
 
@@ -52,8 +52,6 @@ func main() {
 		Filename:     filename,
 		ReportRunner: r,
 		Ctx:          ctx,
-		Kill:         r.Kill,
-		Killed:       r.Killed,
 	})
 	go a.Start()
 
