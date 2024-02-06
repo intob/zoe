@@ -14,6 +14,6 @@ func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "max-age=10")
+	w.Header().Set("Cache-Control", "max-age=60")
 	w.Write(report)
 }

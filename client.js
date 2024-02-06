@@ -5,6 +5,7 @@ function randId() {
 function randCidForNow() {
   return Math.floor(Math.random() * 10)
 }
+
 window.addEventListener("DOMContentLoaded", () => {
   if (!localStorage.usr) {
     localStorage.usr = randId()
