@@ -1,12 +1,7 @@
 # lstn
-An app that writes billions of tiny tracking events to a file.
-The event is tiny
+An app that efficiently stores a very large number of tracking events.
 
-The http requests are simply filtered by origin check, then rate limited.
-
-You can get the entire file gzipped (even more than a year of tracking data could be possible).
-
-Events are unmarshalled from json into a very efficient protobuf encoding.
+Reports are generated periodically, and can be requested over http.
 
 ## Deploy from scratch
 ### Launch app on Fly
@@ -39,10 +34,16 @@ optional float scrolled: 5 bytes (if present)
 Total maximum size without optional fields: **24 bytes**
 Total maximum size with all optional fields: **35 bytes**
 
-## Download gzipped file
+To store on disk, we also need an additional byte as a length prefix.
+
+Total maximum size including length prefix: **36 bytes**
+
+## GET /data - download gzipped file
 You can download the whole file for your own processing, if you like.
 
-## Why HTTP headers, not JSON body?
+In future, we can export some helper functions to make it easier to handle the file.
+
+## Why HTTP headers, no request body?
 TLDR; it saves bandwidth
 
 HTTP headers themselves are not compressed by default in the HTTP/1.1 protocol. In HTTP/1.1, both request and response headers are sent as plain text. This means that if you send a request or a response with a lot of headers or cookies, the overhead can be quite significant, especially for small request/response bodies.
@@ -62,5 +63,4 @@ HTTP/3, which builds on the QUIC transport protocol, uses QPACK for header compr
 While HTTP/1.1 does not compress headers, modern HTTP versions (HTTP/2 and HTTP/3) include mechanisms for header compression (HPACK and QPACK, respectively). These improvements significantly enhance the efficiency of web communication, especially for applications that make frequent or numerous HTTP requests.
 
 ## To do
-- Figure out why the file becomes corrupted when writing without any rate limit, this is wrong
-- Consider writing gzipped pages to the file to save space (~1000 events, flushed on report)
+- Consider writing gzipped pages to the file to save space.

@@ -31,6 +31,17 @@ func main() {
 			{
 				Name: "views-last-30d",
 				Report: &report.Views{
+					Cutoff: 10,
+					Filter: func(e *ev.Ev) bool {
+						return report.YoungerThan(e, time.Hour*24*30) &&
+							e.EvType == ev.EvType_LOAD
+					},
+				},
+			},
+			{
+				Name: "top-10-last-30d",
+				Report: &report.Top{
+					N: 10,
 					Filter: func(e *ev.Ev) bool {
 						return report.YoungerThan(e, time.Hour*24*30) &&
 							e.EvType == ev.EvType_LOAD
@@ -40,9 +51,20 @@ func main() {
 		},
 	})
 	go func() {
+		lastTimeLogged := time.Now()
 		for {
+			tStart := time.Now()
 			r.Run()
-			time.Sleep(time.Second * 2)
+			tEnd := time.Now()
+			// limit report running rate
+			if tEnd.Sub(tStart) < time.Second*10 {
+				time.Sleep(tEnd.Sub(tStart))
+			}
+			// occasionally log report running time
+			if time.Since(lastTimeLogged) > time.Minute {
+				fmt.Printf("reporting took %v\n", time.Since(tStart))
+				lastTimeLogged = time.Now()
+			}
 		}
 	}()
 

@@ -1,12 +1,10 @@
 package app
 
 import (
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -63,7 +61,7 @@ func (a *App) serve() {
 	server := &http.Server{Addr: ":8080", Handler: mux}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen:%+s\n", err)
+			panic(fmt.Sprintf("failed to listen http: %v\n", err))
 		}
 	}()
 	<-a.ctx.Done()
@@ -74,8 +72,6 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		switch r.URL.Path {
-		case "/data":
-			a.handleGetData(w, r)
 		case "/report":
 			a.handleGetReport(w, r)
 		case "/js":
@@ -138,24 +134,6 @@ func (a *App) handlePost(w http.ResponseWriter, r *http.Request) {
 	a.events <- e
 }
 
-// Write all data to response writer
-func (a *App) handleGetData(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open(a.filename)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
-	w.Header().Set("Content-Encoding", "gzip")
-	gz := gzip.NewWriter(w)
-	defer gz.Close()
-	_, err = io.Copy(gz, file)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
 func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -182,7 +160,7 @@ func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
 func (a *App) writeEventsToFile() {
 	file, err := os.OpenFile(a.filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		log.Fatalf("failed to open file: %v", err)
+		panic(fmt.Sprintf("failed to open file: %v", err))
 	}
 	defer file.Close()
 	for {
@@ -233,7 +211,8 @@ func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limiter := a.getRateLimiter(r)
 		if !limiter.Allow() &&
-			r.Method != "POST" { // TEST ONLY! disable rate limit for POST
+			// TODO: REMOVE. TEST ONLY! Disables rate limit for POST
+			r.Method != "POST" {
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
@@ -243,7 +222,7 @@ func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 
 func (a *App) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: check Origin header
+		// TODO: check origin header
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "X_TYPE,X_USR,X_SESS,X_CID,X_SCROLLED,X_PAGE_SECONDS")
 		next.ServeHTTP(w, r)
@@ -260,14 +239,7 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 	key := r.Method + addr
 	v, exists := a.clients[key]
 	if !exists {
-		var limiter *rate.Limiter
-		if r.Method == "POST" { // fast rate for writing
-			limiter = rate.NewLimiter(rate.Every(time.Second), 4)
-		} else if r.URL.Path == "/data" { // very low rate for download
-			limiter = rate.NewLimiter(rate.Every(time.Second*10), 2)
-		} else { // default rate for reading
-			limiter = rate.NewLimiter(rate.Every(time.Second), 2)
-		}
+		limiter := rate.NewLimiter(rate.Every(time.Second), 4)
 		a.clients[key] = &client{limiter, time.Now()}
 		return limiter
 	}
