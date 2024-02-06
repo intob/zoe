@@ -4,6 +4,10 @@
 # Update AWS Route53 DNS records for lstn.swissinfo.ch
 #
 
+IPS_LIST=$(flyctl ips list)
+IPV6=$(echo "$IPS_LIST" | awk '/v6/{print $2}')
+IPV4=$(echo "$IPS_LIST" | awk '/v4/{print $2}')
+
 echo "Updating DNS records for $RECORD_NAME in hosted zone $AWS_HOSTED_ZONE_ID"
 echo "IPv4: $IPV4 / IPv6: $IPV6"
 

@@ -27,24 +27,14 @@ jobs:
       id: deploy
       run: |
         flyctl deploy --remote-only
-        IPS_LIST=$(flyctl ips list)
-        IPV6=$(echo "$IPS_LIST" | awk '/v6/{print $2}')
-        IPV4=$(echo "$IPS_LIST" | awk '/v4/{print $2}')
-        echo "IPV6=${IPV6}" >> $GITHUB_ENV
-        echo "IPV4=${IPV4}" >> $GITHUB_ENV
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
 
     - name: Update AWS Resources
       run: |
         chmod +x update-aws.sh
-        ./update-aws.sh \
-            lstn.swissinfo.ch \
-            --ipv6 $IPV6 \
-            --ipv4 $IPV4
+        ./update-aws.sh lstn.swissinfo.ch
       env:
         RECORD_NAME: lstn.swissinfo.ch
         AWS_HOSTED_ZONE_ID: ${{ secrets.AWS_HOSTED_ZONE_ID }}
-        IPV6: ${{ env.IPV6 }}
-        IPV4: ${{ env.IPV4 }}
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
