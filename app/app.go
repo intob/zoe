@@ -17,13 +17,13 @@ import (
 )
 
 type App struct {
+	ctx          context.Context
 	clients      map[string]*client // writer:addr or reader:addr
 	clientMu     sync.Mutex
 	events       chan *ev.Ev
 	filename     string
 	reportRunner *report.Runner
 	reportNames  []string
-	ctx          context.Context
 }
 
 type AppCfg struct {
