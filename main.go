@@ -25,73 +25,67 @@ func main() {
 	}
 	file.Close()
 
-	r := report.NewRunner(&report.RunnerCfg{
+	runnerCfg := &report.RunnerCfg{
 		Filename: filename,
-		Jobs: []*report.Job{
-			{
-				Name: "views-last-30d-cutoff10",
+		Jobs: map[string]*report.Job{
+			"views-last-30d-cutoff10": {
 				Report: &report.Views{
 					Cutoff:        10,
 					EstimatedSize: 1000,
 					Filter: func(e *ev.Ev) bool {
-						return report.YoungerThan(e, time.Hour*24*30) &&
-							e.EvType == ev.EvType_LOAD
+						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*30)
 					},
 				},
 			},
-			{
-				Name: "top-10-last-30d",
+			/*"top-10-last-30d": {
 				Report: &report.Top{
 					N: 10,
 					Filter: func(e *ev.Ev) bool {
-						return report.YoungerThan(e, time.Hour*24*30) &&
-							e.EvType == ev.EvType_LOAD
+						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*30)
 					},
 				},
-			},
-			{
-				Name: "subset-last-7d-max100k",
+			},*/
+			"subset-last-7d-max3": {
 				Report: &report.Subset{
-					Limit: 100000,
+					Limit: 3,
 					Filter: func(e *ev.Ev) bool {
-						return report.YoungerThan(e, time.Hour*24*7) &&
-							e.EvType == ev.EvType_LOAD
+						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*7)
 					},
 				},
 			},
 		},
-	})
+	}
+	reportsRunner := report.NewRunner(runnerCfg)
 	go func() {
 		lastTimeLogged := time.Now()
 		for {
-			fmt.Println("run reports")
 			tStart := time.Now()
-			r.Run()
+			reportsRunner.Run()
 			tEnd := time.Now()
-			fmt.Println("run done")
-			// limit report running rate
-			if tEnd.Sub(tStart) < time.Second*10 {
-				time.Sleep((time.Second * 10) - tEnd.Sub(tStart))
-			}
 			// occasionally log report running time
-			if time.Since(lastTimeLogged) > time.Minute {
+			if time.Since(lastTimeLogged) > time.Second*3 {
 				fmt.Printf("reporting took %v\n", time.Since(tStart))
 				lastTimeLogged = time.Now()
 			}
+			// limit report running rate
+			if tEnd.Sub(tStart) < time.Second*2 {
+				time.Sleep((time.Second * 2) - tEnd.Sub(tStart))
+			}
 		}
 	}()
+
+	reportNames := make([]string, 0, len(runnerCfg.Jobs))
+	for name := range runnerCfg.Jobs {
+		reportNames = append(reportNames, name)
+	}
 
 	ctx := getCtx()
 
 	app.NewApp(&app.AppCfg{
 		Filename:     filename,
-		ReportRunner: r,
-		ReportNames: []string{
-			"views-last-30d-cutoff10",
-			"top-10-last-30d",
-			"subset-last-7d-max100k",
-		},
-		Ctx: ctx,
+		ReportRunner: reportsRunner,
+		ReportNames:  reportNames,
+		Ctx:          ctx,
 	})
 
 	<-ctx.Done()

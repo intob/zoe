@@ -6,7 +6,8 @@ import (
 	"github.com/swissinfo-ch/lstn/ev"
 )
 
-// Views is a report that counts the number of views per content id
+// Views implements the Report interface
+// It generates a json representation of the views per content id
 type Views struct {
 	Filter        func(*ev.Ev) bool // filter function
 	Cutoff        int               // minimum number of views to be included in the report
