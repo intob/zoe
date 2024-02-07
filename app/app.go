@@ -24,6 +24,7 @@ type App struct {
 	filename     string
 	reportRunner *report.Runner
 	reportNames  []string
+	commit       string
 }
 
 type AppCfg struct {
@@ -48,6 +49,11 @@ func NewApp(cfg *AppCfg) *App {
 		reportNames:  cfg.ReportNames,
 		ctx:          cfg.Ctx,
 	}
+	commit, err := os.ReadFile("commit")
+	if err != nil {
+		panic(fmt.Sprintf("failed to read commit file: %v", err))
+	}
+	a.commit = string(commit)
 	go a.cleanupVisitors()
 	go a.writeEventsToFile()
 	go a.serve()

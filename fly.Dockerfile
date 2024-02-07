@@ -5,8 +5,11 @@
 FROM golang:alpine as builder
 
 RUN apk update \
-      && apk add --no-cache \
-        git
+    && apk add --no-cache \
+      git \
+      ca-certificates \
+      tzdata \
+    && update-ca-certificates
 
 WORKDIR /app
 COPY . /app
@@ -14,9 +17,9 @@ COPY . /app
 RUN git rev-parse --short HEAD > /app/commit \
       && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
           -ldflags='-w -s -extldflags "-static"' \
-          -mod=vendor \
-          -a \
-          -o /app/lstn .
+      -mod=readonly \
+      -a \
+      -o /app/lstn .
 
 #
 # STEP 2 build small image
@@ -28,5 +31,6 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 # Copy binary and app files
 COPY --from=builder /app/lstn /lstn
 COPY --from=builder /app/client.js /client.js
+COPY --from=builder /app/commit /commit
 
 ENTRYPOINT ["/lstn"]
