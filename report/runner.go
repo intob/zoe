@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync"
+	"time"
 
 	"github.com/swissinfo-ch/lstn/ev"
 	"google.golang.org/protobuf/proto"
@@ -17,12 +17,11 @@ type RunnerCfg struct {
 }
 
 type Runner struct {
-	rwMu     sync.RWMutex
 	results  map[string][]byte
 	jobs     map[string]*Job
 	jobDone  chan *JobDone
-	filename string
 	events   chan *ev.Ev
+	filename string
 }
 
 type Job struct {
@@ -49,12 +48,11 @@ func (r *Runner) Run() {
 	r.jobDone = make(chan *JobDone)
 	r.events = make(chan *ev.Ev)
 	for jobName, job := range r.jobs {
-		job.events = make(chan *ev.Ev, 10)
+		job.events = make(chan *ev.Ev, 2)
 		go r.generateJobReport(job, jobName)
 	}
-	go r.dispatchEventsToJobs()
 	go r.readEventsFromFile()
-	r.collectJobResults()
+	r.sendEventsCollectResults()
 }
 
 // Results returns the results of a job
@@ -75,45 +73,38 @@ func (r *Runner) generateJobReport(job *Job, jobName string) {
 	}
 }
 
-// collectResults collects the results of the jobs
-func (r *Runner) collectJobResults() {
-	countDone := 0
-	for countDone < len(r.jobs) {
-		done := <-r.jobDone
-		countDone++
-		fmt.Println("job done:", done.Name)
-		r.rwMu.Lock()
-		r.results[done.Name] = done.Result
-		r.jobs[done.Name].events = nil
-		r.rwMu.Unlock()
-	}
-	fmt.Println("all jobs done")
-}
-
 // dispatchEventsToJobs sends the events to the jobs
-func (r *Runner) dispatchEventsToJobs() {
-	for e := range r.events {
-		fmt.Println("dispatching event:", e)
-		r.rwMu.RLock()
-		for _, job := range r.jobs {
-			if job.events == nil {
-				continue
+func (r *Runner) sendEventsCollectResults() {
+	countDone := 0
+	runningJobs := make(map[string]*Job, len(r.jobs))
+	for name, job := range r.jobs {
+		runningJobs[name] = job
+	}
+	for {
+		select {
+		case e, ok := <-r.events:
+			if !ok {
+				return
 			}
-			job.events <- e
-			fmt.Printf("job<-e\n")
+			for jobName, job := range runningJobs {
+				select {
+				case job.events <- e:
+				case <-time.After(time.Microsecond * 50):
+					fmt.Println("timeout, dropping event for job", jobName)
+				}
+			}
+		case j := <-r.jobDone:
+			r.results[j.Name] = j.Result
+			fmt.Println("job done:", j.Name)
+			close(runningJobs[j.Name].events)
+			delete(runningJobs, j.Name)
+			fmt.Println(runningJobs)
+			countDone++
+			if len(r.jobs) == countDone {
+				return
+			}
 		}
-		r.rwMu.RUnlock()
 	}
-	r.rwMu.RLock()
-	for jobName, job := range r.jobs {
-		if job.events == nil {
-			fmt.Println("skipped closing job events channel:", jobName)
-		} else {
-			close(job.events)
-		}
-		fmt.Println("closed job events channel:", jobName)
-	}
-	r.rwMu.RUnlock()
 }
 
 // readEventsFromFile reads events from a file and sends them to the events channel
@@ -127,7 +118,7 @@ func (r *Runner) readEventsFromFile() {
 	reader := bufio.NewReader(file)
 	count := 0
 	for {
-		// Read the length as a single byte
+		// Read the length as a byte
 		lengthByte, err := reader.ReadByte()
 		if err != nil {
 			if err == io.EOF {
@@ -135,11 +126,9 @@ func (r *Runner) readEventsFromFile() {
 			}
 			panic(fmt.Sprintf("failed to read event length: %v", err))
 		}
-
-		// Convert the length byte to an integer
 		length := int(lengthByte)
 
-		// Allocate a slice for the data of the event
+		// read payload
 		data := make([]byte, length)
 		_, err = io.ReadFull(reader, data)
 		if err != nil {
