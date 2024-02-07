@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/swissinfo-ch/lstn/ev"
 	"google.golang.org/protobuf/proto"
@@ -16,9 +17,10 @@ type RunnerCfg struct {
 }
 
 type Runner struct {
-	results  map[string][]byte
-	filename string
-	jobs     []*Job
+	results   map[string][]byte
+	resultsMu sync.Mutex
+	filename  string
+	jobs      []*Job
 }
 
 type Job struct {
@@ -43,7 +45,9 @@ func (r *Runner) Run() {
 			if err != nil {
 				panic(err)
 			}
+			r.resultsMu.Lock()
 			r.results[job.Name] = report
+			r.resultsMu.Unlock()
 		}(job)
 	}
 	err := r.readEvents()
