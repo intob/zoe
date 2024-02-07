@@ -84,7 +84,12 @@ func main() {
 	app.NewApp(&app.AppCfg{
 		Filename:     filename,
 		ReportRunner: r,
-		Ctx:          ctx,
+		ReportNames: []string{
+			"views-last-30d-cutoff10",
+			"top-10-last-30d",
+			"subset-last-7d-max100k",
+		},
+		Ctx: ctx,
 	})
 
 	<-ctx.Done()

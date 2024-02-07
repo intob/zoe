@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -16,9 +17,19 @@ const (
 	originDefault = "https://lstn.swissinfo.ch"
 )
 
+func TestIntegration(t *testing.T) {
+	origin := os.Getenv("LSTN_ORIGIN")
+	if origin == "" {
+		fmt.Println("LSTN_ORIGIN undefined, using default", originDefault)
+		origin = originDefault
+	}
+	testIntegration(origin, runtime.NumCPU()*32, total)
+}
+
 func testIntegration(origin string, concurrency, total int) {
 	jobs := make(chan *http.Request)
 	wg := &sync.WaitGroup{}
+	// start workers
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
@@ -38,25 +49,38 @@ func testIntegration(origin string, concurrency, total int) {
 			wg.Done()
 		}(i, wg)
 	}
+	// get test cids
+	cids := readFileLines(".testdata/cids.txt")
+	// make requests
 	fmt.Printf("making %d requests to %s using %d workers\n", total, origin, concurrency)
-	usr := strconv.FormatUint(uint64(rand.Uint32()), 10)
+	randUsr := strconv.FormatUint(uint64(rand.Uint32()), 10)
 	for i := 0; i < total; i++ {
+		randSess := strconv.FormatUint(uint64(rand.Uint32()), 10)
 		r, _ := http.NewRequest("POST", origin, nil)
 		r.Header.Set("X_TYPE", "LOAD")
-		r.Header.Set("X_USR", usr)
-		r.Header.Set("X_SESS", strconv.FormatUint(uint64(rand.Uint32()), 10))
-		r.Header.Set("X_CID", strconv.FormatUint(uint64(i), 10))
+		r.Header.Set("X_USR", randUsr)
+		r.Header.Set("X_SESS", randSess)
+		r.Header.Set("X_CID", cids[rand.Intn(len(cids))])
 		jobs <- r
 	}
 	close(jobs)
+	// wait for workers to finish
 	wg.Wait()
 }
 
-func TestIntegration(t *testing.T) {
-	origin := os.Getenv("LSTN_ORIGIN")
-	if origin == "" {
-		fmt.Println("LSTN_ORIGIN undefined, using default", originDefault)
-		origin = originDefault
+func readFileLines(fileName string) []string {
+	file, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
 	}
-	testIntegration(origin, runtime.NumCPU()*32, total)
+	defer file.Close()
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+	return lines
 }

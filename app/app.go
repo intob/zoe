@@ -22,12 +22,14 @@ type App struct {
 	events       chan *ev.Ev
 	filename     string
 	reportRunner *report.Runner
+	reportNames  []string
 	ctx          context.Context
 }
 
 type AppCfg struct {
 	Filename     string
 	ReportRunner *report.Runner
+	ReportNames  []string
 	Ctx          context.Context
 }
 
@@ -43,6 +45,7 @@ func NewApp(cfg *AppCfg) *App {
 		clientMu:     sync.Mutex{},
 		events:       make(chan *ev.Ev, 100),
 		reportRunner: cfg.ReportRunner,
+		reportNames:  cfg.ReportNames,
 		ctx:          cfg.Ctx,
 	}
 	go a.cleanupVisitors()
@@ -118,7 +121,7 @@ func (a *App) writeEvent(w io.Writer, e *ev.Ev) error {
 	}
 
 	// Check if data length exceeds the maximum size of 35 bytes.
-	// TODO: calculate this from the protobuf definition.
+	// TODO: calculate 35 from the protobuf definition.
 	if len(data) > 35 {
 		return fmt.Errorf("event size %d exceeds maximum of 35 bytes", len(data))
 	}
@@ -157,7 +160,7 @@ func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 
 func (a *App) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: check origin header
+		// TODO: check origin header is swissinfo.ch
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "X_TYPE,X_USR,X_SESS,X_CID,X_SCROLLED,X_PAGE_SECONDS")
 		next.ServeHTTP(w, r)

@@ -9,12 +9,9 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Cache-Control", "max-age=3600")
 
-	// Example list of report names, replace this with your actual data source
-	reportNames := []string{"Report A", "Report B", "Report C"}
-
 	// Generate the HTML list items for each report
 	var listItemsBuilder strings.Builder
-	for _, name := range reportNames {
+	for _, name := range a.reportNames {
 		listItemsBuilder.WriteString("<li><a href=\"/r?name=" + name + "\">" + name + "</a></li>\n")
 	}
 	listItemsHTML := listItemsBuilder.String()
