@@ -4,22 +4,21 @@
 #
 FROM golang:alpine as builder
 
+WORKDIR /app
+COPY . /app
+
 RUN apk update \
     && apk add --no-cache \
       git \
       ca-certificates \
       tzdata \
-    && update-ca-certificates
-
-WORKDIR /app
-COPY . /app
-
-RUN git rev-parse --short HEAD > /app/commit \
-      && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-          -ldflags='-w -s -extldflags "-static"' \
+    && update-ca-certificates \
+    && git rev-parse --short HEAD > commit \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+      -ldflags='-w -s -extldflags "-static"' \
       -mod=readonly \
       -a \
-      -o /app/lstn .
+      -o lstn .
 
 #
 # STEP 2 build small image

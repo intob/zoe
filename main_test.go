@@ -55,10 +55,10 @@ func testIntegration(origin string, concurrency, total int) {
 		for i := 0; i < total; i++ {
 			randSess := strconv.FormatUint(uint64(rand.Uint32()), 10)
 			r, _ := http.NewRequest("POST", origin, nil)
-			r.Header.Set("X_TYPE", "LOAD")
-			r.Header.Set("X_USR", randUsr)
-			r.Header.Set("X_SESS", randSess)
-			r.Header.Set("X_CID", cids[rand.Intn(len(cids))])
+			r.Header.Set("TYPE", "LOAD")
+			r.Header.Set("USR", randUsr)
+			r.Header.Set("SESS", randSess)
+			r.Header.Set("CID", cids[rand.Intn(len(cids))])
 			jobs <- r
 		}
 		close(jobs)

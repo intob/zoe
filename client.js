@@ -16,10 +16,10 @@ window.addEventListener("DOMContentLoaded", () => {
   fetch("https://lstn.swissinfo.ch", {
     method: "POST",
     headers: {
-      "X_TYPE": "LOAD",
-      "X_USR": localStorage.usr,
-      "X_SESS": sessionStorage.sess,
-      "X_CID": randCidForNow()
+      "TYPE": "LOAD",
+      "USR": localStorage.usr,
+      "SESS": sessionStorage.sess,
+      "CID": randCidForNow()
     }
   })
 })

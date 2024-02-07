@@ -11,24 +11,24 @@ import (
 
 // Handle event input
 func (a *App) handlePost(w http.ResponseWriter, r *http.Request) {
-	evType, ok := ev.EvType_value[r.Header.Get("X_TYPE")]
+	evType, ok := ev.EvType_value[r.Header.Get("TYPE")]
 	if !ok {
-		http.Error(w, "invalid header X_TYPE, must be one of LOAD, UNLOAD or TIME", http.StatusBadRequest)
+		http.Error(w, "invalid header TYPE, must be one of LOAD, UNLOAD or TIME", http.StatusBadRequest)
 		return
 	}
-	usr, err := strconv.ParseUint(r.Header.Get("X_USR"), 10, 32)
+	usr, err := strconv.ParseUint(r.Header.Get("USR"), 10, 32)
 	if err != nil {
-		http.Error(w, fmt.Errorf("err to parse uint32 in header X_USR: %w", err).Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Errorf("err to parse uint32 in header USR: %w", err).Error(), http.StatusBadRequest)
 		return
 	}
-	sess, err := strconv.ParseUint(r.Header.Get("X_SESS"), 10, 32)
+	sess, err := strconv.ParseUint(r.Header.Get("SESS"), 10, 32)
 	if err != nil {
-		http.Error(w, fmt.Errorf("err to parse uint32 in header X_SESS: %w", err).Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Errorf("err to parse uint32 in header SESS: %w", err).Error(), http.StatusBadRequest)
 		return
 	}
-	cid, err := strconv.ParseUint(r.Header.Get("X_CID"), 10, 32)
+	cid, err := strconv.ParseUint(r.Header.Get("CID"), 10, 32)
 	if err != nil {
-		http.Error(w, fmt.Errorf("err to parse uint32 in header X_CID: %w", err).Error(), http.StatusBadRequest)
+		http.Error(w, fmt.Errorf("err to parse uint32 in header CID: %w", err).Error(), http.StatusBadRequest)
 		return
 	}
 	e := &ev.Ev{
@@ -40,17 +40,17 @@ func (a *App) handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 	switch e.EvType {
 	case ev.EvType_UNLOAD:
-		scrolled, err := strconv.ParseFloat(r.Header.Get("X_SCROLLED"), 32)
+		scrolled, err := strconv.ParseFloat(r.Header.Get("SCROLLED"), 32)
 		if err != nil {
-			http.Error(w, fmt.Errorf("failed to parse X_SCROLLED: %w", err).Error(), http.StatusBadRequest)
+			http.Error(w, fmt.Errorf("failed to parse SCROLLED: %w", err).Error(), http.StatusBadRequest)
 			return
 		}
 		scrolled32 := float32(scrolled)
 		e.Scrolled = &scrolled32
 	case ev.EvType_TIME:
-		pageSeconds, err := strconv.ParseUint(r.Header.Get("X_PAGE_SECONDS"), 10, 32)
+		pageSeconds, err := strconv.ParseUint(r.Header.Get("PAGE_SECONDS"), 10, 32)
 		if err != nil {
-			http.Error(w, fmt.Errorf("failed to parse X_PAGE_SECONDS: %w", err).Error(), http.StatusBadRequest)
+			http.Error(w, fmt.Errorf("failed to parse PAGE_SECONDS: %w", err).Error(), http.StatusBadRequest)
 			return
 		}
 		pageSeconds32 := uint32(pageSeconds)

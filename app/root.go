@@ -22,7 +22,7 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 	<body>
 		<h1>LSTN</h1>
 		<code>commit ` + a.commit + `</code>
-		<p>Send events to <code>/</code> with headers <code>X_TYPE</code>, <code>X_USR</code>, <code>X_SESS</code> and <code>X_CID</code>.</p>
+		<p>Send events to <code>/</code> with headers <code>TYPE</code>, <code>USR</code>, <code>SESS</code> and <code>CID</code>. Optional headers: <code>SCROLLED</code> and <code>PAGE_SECONDS</code></p>
 		<p>Get reports from <code>/r</code> with query parameter <code>name</code>:</p>
 		<ul>` + listItemsHTML + `</ul>
 		<p>Get client-side script from <a href="/js">/js</a>.</p>
