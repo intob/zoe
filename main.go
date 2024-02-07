@@ -69,7 +69,7 @@ func main() {
 			tEnd := time.Now()
 			// limit report running rate
 			if tEnd.Sub(tStart) < time.Second*10 {
-				time.Sleep(tEnd.Sub(tStart))
+				time.Sleep((time.Second * 10) - tEnd.Sub(tStart))
 			}
 			// occasionally log report running time
 			if time.Since(lastTimeLogged) > time.Minute {

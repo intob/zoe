@@ -48,6 +48,7 @@ func (r *Runner) Run() {
 			r.resultsMu.Lock()
 			r.results[job.Name] = report
 			r.resultsMu.Unlock()
+			fmt.Println("report", job.Name, "done")
 		}(job)
 	}
 	err := r.readEvents()
