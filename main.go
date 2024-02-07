@@ -64,9 +64,11 @@ func main() {
 	go func() {
 		lastTimeLogged := time.Now()
 		for {
+			fmt.Println("run reports")
 			tStart := time.Now()
 			r.Run()
 			tEnd := time.Now()
+			fmt.Println("run done")
 			// limit report running rate
 			if tEnd.Sub(tStart) < time.Second*10 {
 				time.Sleep((time.Second * 10) - tEnd.Sub(tStart))
