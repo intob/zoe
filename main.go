@@ -37,14 +37,14 @@ func main() {
 					},
 				},
 			},
-			/*"top-10-last-30d": {
+			"top-10-last-30d": {
 				Report: &report.Top{
 					N: 10,
 					Filter: func(e *ev.Ev) bool {
 						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*30)
 					},
 				},
-			},*/
+			},
 			"subset-last-7d-max3": {
 				Report: &report.Subset{
 					Limit: 3,
@@ -63,7 +63,7 @@ func main() {
 			reportsRunner.Run()
 			tEnd := time.Now()
 			// occasionally log report running time
-			if time.Since(lastTimeLogged) > time.Second*3 {
+			if time.Since(lastTimeLogged) > time.Second {
 				fmt.Printf("reporting took %v\n", time.Since(tStart))
 				lastTimeLogged = time.Now()
 			}

@@ -2,7 +2,6 @@ package report
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/swissinfo-ch/lstn/ev"
 )
@@ -25,6 +24,5 @@ func (s *Subset) Generate(events <-chan *ev.Ev) ([]byte, error) {
 			}
 		}
 	}
-	fmt.Println("subset report generated")
 	return json.Marshal(data)
 }

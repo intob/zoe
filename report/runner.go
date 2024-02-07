@@ -46,9 +46,9 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 // Run generates a report for each job
 func (r *Runner) Run() {
 	r.jobDone = make(chan *JobDone)
-	r.events = make(chan *ev.Ev)
+	r.events = make(chan *ev.Ev, 100)
 	for jobName, job := range r.jobs {
-		job.events = make(chan *ev.Ev, 2)
+		job.events = make(chan *ev.Ev, 4)
 		go r.generateJobReport(job, jobName)
 	}
 	go r.readEventsFromFile()
@@ -73,7 +73,7 @@ func (r *Runner) generateJobReport(job *Job, jobName string) {
 	}
 }
 
-// dispatchEventsToJobs sends the events to the jobs
+// sendEventsCollectResults sends events to the jobs and collects the results
 func (r *Runner) sendEventsCollectResults() {
 	countDone := 0
 	runningJobs := make(map[string]*Job, len(r.jobs))
@@ -84,21 +84,23 @@ func (r *Runner) sendEventsCollectResults() {
 		select {
 		case e, ok := <-r.events:
 			if !ok {
-				return
+				for name, job := range runningJobs {
+					close(job.events)
+					delete(runningJobs, name)
+				}
+				continue
 			}
-			for jobName, job := range runningJobs {
+			for _, job := range runningJobs {
 				select {
 				case job.events <- e:
+					// event sent
 				case <-time.After(time.Microsecond * 50):
-					fmt.Println("timeout, dropping event for job", jobName)
+					// timeout
 				}
 			}
 		case j := <-r.jobDone:
 			r.results[j.Name] = j.Result
-			fmt.Println("job done:", j.Name)
-			close(runningJobs[j.Name].events)
 			delete(runningJobs, j.Name)
-			fmt.Println(runningJobs)
 			countDone++
 			if len(r.jobs) == countDone {
 				return
