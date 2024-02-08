@@ -17,7 +17,6 @@ type Stat struct {
 // handleGetStat is the HTTP handler for the /stat endpoint.
 func (a *App) handleGetStat(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "max-age=60")
 	s := &Stat{
 		FileSize:                a.reportRunner.FileSize(),
 		CurrentReportEventCount: a.reportRunner.CurrentReportEventCount(),
