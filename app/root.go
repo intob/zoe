@@ -16,7 +16,7 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 	}
 	listItemsHTML := listItemsBuilder.String()
 
-	// Insert the list items into the main HTML response
+	// Generate the HTML response
 	responseHTML := `<html>
 	<head><title>LSTN</title></head>
 	<body>
@@ -26,6 +26,7 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 		<p>Get reports from <code>/r</code> with query parameter <code>name</code>:</p>
 		<ul>` + listItemsHTML + `</ul>
 		<p>Get client-side script from <a href="/js">/js</a>.</p>
+		<p>Get report runner stats from <a href="/stat">/stat</a>.</p>
 		<p>See <a href="https://github.com/swissinfo-ch/lstn">github.com/swissinfo-ch/lstn</a> for more information.</p>
 	</body>
 </html>`

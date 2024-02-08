@@ -14,7 +14,7 @@ primary_region = 'ams'
 
 [env]
   LSTN_EVENTS_FILE = '/data/events'
-  LSTN_MIN_REPORT_INTERVAL = '2m'
+  LSTN_MIN_REPORT_INTERVAL = '30s'
 
 [[mounts]]
   source = 'data'

@@ -2,9 +2,7 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -13,7 +11,6 @@ import (
 	"github.com/swissinfo-ch/lstn/ev"
 	"github.com/swissinfo-ch/lstn/report"
 	"golang.org/x/time/rate"
-	"google.golang.org/protobuf/proto"
 )
 
 type App struct {
@@ -25,6 +22,7 @@ type App struct {
 	reportRunner *report.Runner
 	reportNames  []string
 	commit       string
+	evBuffer     *ev.Evs
 }
 
 type AppCfg struct {
@@ -48,6 +46,7 @@ func NewApp(cfg *AppCfg) *App {
 		reportRunner: cfg.ReportRunner,
 		reportNames:  cfg.ReportNames,
 		ctx:          cfg.Ctx,
+		evBuffer:     &ev.Evs{},
 	}
 	commit, err := os.ReadFile("commit")
 	if err != nil {
@@ -55,7 +54,7 @@ func NewApp(cfg *AppCfg) *App {
 	}
 	a.commit = string(commit)
 	go a.cleanupVisitors()
-	go a.writeEventsToFile()
+	go a.writeEvents()
 	go a.serve()
 	return a
 }
@@ -86,6 +85,8 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 			a.handleGetReport(w, r)
 		case "/js":
 			a.handleGetJS(w, r)
+		case "/stat":
+			a.handleGetStat(w, r)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -98,57 +99,6 @@ func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=3600")
 	w.Header().Set("Content-Type", "text/javascript")
 	http.ServeFile(w, r, "client.js")
-}
-
-// Write to file what is sent on events chan
-func (a *App) writeEventsToFile() {
-	file, err := os.OpenFile(a.filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		panic(fmt.Sprintf("failed to open file: %v", err))
-	}
-	defer file.Close()
-	for {
-		select {
-		case e := <-a.events:
-			if err := a.writeEvent(file, e); err != nil {
-				panic(fmt.Sprintf("failed to write event: %v", err))
-			}
-		case <-a.ctx.Done():
-			return
-		}
-	}
-}
-
-func (a *App) writeEvent(w io.Writer, e *ev.Ev) error {
-	// Marshal the protobuf event.
-	data, err := proto.Marshal(e)
-	if err != nil {
-		return fmt.Errorf("failed to marshal protobuf: %w", err)
-	}
-
-	// Check if data length exceeds the maximum size of 35 bytes.
-	// TODO: calculate 35 from the protobuf definition.
-	if len(data) > 35 {
-		return fmt.Errorf("event size %d exceeds maximum of 35 bytes", len(data))
-	}
-
-	// Prepend the size as a single byte.
-	// Since we know the maximum size is 35 bytes, a single byte for size is sufficient.
-	sizeByte := byte(len(data))         // Convert the length of data to a single byte.
-	buf := make([]byte, 0, 1+len(data)) // Allocate buffer for size byte and data.
-	buf = append(buf, sizeByte)         // Append size byte.
-	buf = append(buf, data...)          // Append the actual event data.
-
-	// Write the buffer to the io.Writer.
-	n, err := w.Write(buf)
-	if err != nil {
-		return fmt.Errorf("failed to write to buffer: %w", err)
-	}
-	if n != len(buf) {
-		return errors.New("failed to write all bytes to buffer")
-	}
-
-	return nil
 }
 
 func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {

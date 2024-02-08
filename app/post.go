@@ -1,12 +1,16 @@
 package app
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/swissinfo-ch/lstn/ev"
+	"google.golang.org/protobuf/proto"
 )
 
 // Handle event input
@@ -57,4 +61,59 @@ func (a *App) handlePost(w http.ResponseWriter, r *http.Request) {
 		e.PageSeconds = &pageSeconds32
 	}
 	a.events <- e
+}
+
+// writeEvents writes to the file in a loop
+// TODO: add a buffer to write gzipped groups
+func (a *App) writeEvents() {
+	file, err := os.OpenFile(a.filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("failed to open file: %v", err))
+	}
+	defer file.Close()
+	for {
+		select {
+		case e := <-a.events:
+			if err := a.writeEvent(file, e); err != nil {
+				panic(fmt.Sprintf("failed to write event: %v", err))
+			}
+		case <-a.ctx.Done():
+			return
+		}
+	}
+}
+
+// writeEvent writes the event to the file
+// TODO: reverse the order of the parts
+// to optimize reading most recent events
+func (a *App) writeEvent(w io.Writer, e *ev.Ev) error {
+	// Marshal the protobuf event.
+	data, err := proto.Marshal(e)
+	if err != nil {
+		return fmt.Errorf("failed to marshal protobuf: %w", err)
+	}
+
+	// Check if data length exceeds the maximum size of 35 bytes.
+	// TODO: calculate 35 from the protobuf definition.
+	if len(data) > 35 {
+		return fmt.Errorf("event size %d exceeds maximum of 35 bytes", len(data))
+	}
+
+	// Prepend the size as a single byte.
+	// Since we know the maximum size is 35 bytes, a single byte for size is sufficient.
+	sizeByte := byte(len(data))         // Convert the length of data to a single byte.
+	buf := make([]byte, 0, 1+len(data)) // Allocate buffer for size byte and data.
+	buf = append(buf, data...)          // Append the actual event data.
+	buf = append(buf, sizeByte)         // Append size byte.
+
+	// Write the buffer to the io.Writer.
+	n, err := w.Write(buf)
+	if err != nil {
+		return fmt.Errorf("failed to write to buffer: %w", err)
+	}
+	if n != len(buf) {
+		return errors.New("failed to write all bytes to buffer")
+	}
+
+	return nil
 }

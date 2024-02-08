@@ -18,8 +18,14 @@ message Ev {
   optional float scrolled = 7;
 }
 
+// EvType is the type of event.
 enum EvType {
   LOAD = 0; // Once per page load per session
   UNLOAD = 1; // Once per page unload per session
   TIME = 2; // Time spent on a page
+}
+
+// Evs is a collection of events.
+message Evs {
+  repeated Ev evs = 1;
 }

@@ -27,7 +27,7 @@ func main() {
 	file.Close()
 
 	// setup min report interval
-	minReportInterval := time.Second * 60
+	minReportInterval := time.Second * 10
 	minReportIntervalEnv, ok := os.LookupEnv("LSTN_MIN_REPORT_INTERVAL")
 	if ok {
 		var err error
@@ -59,9 +59,9 @@ func main() {
 					},
 				},
 			},
-			"subset-last7d-max3": {
+			"subset-last7d-max100k": {
 				Report: &report.Subset{
-					Limit: 3,
+					Limit: 100000,
 					Filter: func(e *ev.Ev) bool {
 						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*7)
 					},
@@ -70,23 +70,6 @@ func main() {
 		},
 	}
 	reportsRunner := report.NewRunner(runnerCfg)
-	go func() {
-		lastTimeLogged := time.Time{}
-		for {
-			tStart := time.Now()
-			reportsRunner.Run()
-			tEnd := time.Now()
-			// occasionally log report running time
-			if time.Since(lastTimeLogged) > time.Minute*5 {
-				fmt.Printf("reporting took %v\n", time.Since(tStart))
-				lastTimeLogged = time.Now()
-			}
-			// limit report running rate
-			if tEnd.Sub(tStart) < minReportInterval {
-				time.Sleep((minReportInterval) - tEnd.Sub(tStart))
-			}
-		}
-	}()
 
 	// setup app
 	reportNames := make([]string, 0, len(runnerCfg.Jobs))
