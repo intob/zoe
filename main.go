@@ -63,13 +63,13 @@ func main() {
 			reportsRunner.Run()
 			tEnd := time.Now()
 			// occasionally log report running time
-			if time.Since(lastTimeLogged) > time.Second {
+			if time.Since(lastTimeLogged) > time.Second*30 {
 				fmt.Printf("reporting took %v\n", time.Since(tStart))
 				lastTimeLogged = time.Now()
 			}
 			// limit report running rate
 			if tEnd.Sub(tStart) < time.Second*60 {
-				time.Sleep((time.Second * 2) - tEnd.Sub(tStart))
+				time.Sleep((time.Second * 60) - tEnd.Sub(tStart))
 			}
 		}
 	}()
