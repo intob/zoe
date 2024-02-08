@@ -15,7 +15,7 @@ import (
 
 func main() {
 	filename := "events"
-	filenameEnv, ok := os.LookupEnv("EVENTS_FILE")
+	filenameEnv, ok := os.LookupEnv("LSTN_EVENTS_FILE")
 	if ok {
 		filename = filenameEnv
 	}
@@ -24,6 +24,17 @@ func main() {
 		panic(err)
 	}
 	file.Close()
+
+	minReportInterval := time.Second * 60
+	minReportIntervalEnv, ok := os.LookupEnv("LSTN_MIN_REPORT_INTERVAL")
+	if ok {
+		var err error
+		minReportInterval, err = time.ParseDuration(minReportIntervalEnv)
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("setting min report interval to", minReportInterval)
 
 	runnerCfg := &report.RunnerCfg{
 		Filename: filename,
@@ -57,7 +68,7 @@ func main() {
 	}
 	reportsRunner := report.NewRunner(runnerCfg)
 	go func() {
-		lastTimeLogged := time.Now()
+		lastTimeLogged := time.Time{}
 		for {
 			tStart := time.Now()
 			reportsRunner.Run()
@@ -68,8 +79,8 @@ func main() {
 				lastTimeLogged = time.Now()
 			}
 			// limit report running rate
-			if tEnd.Sub(tStart) < time.Second*60 {
-				time.Sleep((time.Second * 60) - tEnd.Sub(tStart))
+			if tEnd.Sub(tStart) < minReportInterval {
+				time.Sleep((minReportInterval) - tEnd.Sub(tStart))
 			}
 		}
 	}()

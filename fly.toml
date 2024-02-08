@@ -13,7 +13,8 @@ primary_region = 'ams'
   strategy = 'immediate'
 
 [env]
-  EVENTS_FILE = '/data/events'
+  LSTN_EVENTS_FILE = '/data/events'
+  LSTN_MIN_REPORT_INTERVAL = '90s'
 
 [[mounts]]
   source = 'data'
