@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+	// setup events file
 	filename := "events"
 	filenameEnv, ok := os.LookupEnv("LSTN_EVENTS_FILE")
 	if ok {
@@ -25,6 +26,7 @@ func main() {
 	}
 	file.Close()
 
+	// setup min report interval
 	minReportInterval := time.Second * 60
 	minReportIntervalEnv, ok := os.LookupEnv("LSTN_MIN_REPORT_INTERVAL")
 	if ok {
@@ -36,6 +38,7 @@ func main() {
 	}
 	fmt.Println("setting min report interval to", minReportInterval)
 
+	// setup report runner
 	runnerCfg := &report.RunnerCfg{
 		Filename: filename,
 		Jobs: map[string]*report.Job{
@@ -85,13 +88,12 @@ func main() {
 		}
 	}()
 
+	// setup app
 	reportNames := make([]string, 0, len(runnerCfg.Jobs))
 	for name := range runnerCfg.Jobs {
 		reportNames = append(reportNames, name)
 	}
-
 	ctx := getCtx()
-
 	app.NewApp(&app.AppCfg{
 		Filename:     filename,
 		ReportRunner: reportsRunner,
@@ -99,6 +101,7 @@ func main() {
 		Ctx:          ctx,
 	})
 
+	// wait for context to be done
 	<-ctx.Done()
 	fmt.Println("app shutting down")
 }
