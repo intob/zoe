@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	total = 10000000 // make 10M requests
+	total = 100000000 // make 100M requests
 	prod  = "https://lstn.swissinfo.ch"
 )
 
@@ -26,12 +26,12 @@ func TestIntegration(t *testing.T) {
 		testIntegration(origin, runtime.NumCPU()*16, total)
 		return
 	}
-	testIntegration(origin, runtime.NumCPU()*32, total)
+	testIntegration(origin, runtime.NumCPU()*128, total)
 }
 
 func testIntegration(origin string, concurrency, total int) {
-	jobs := make(chan *http.Request, 10)
-	out := make(chan *error, 10)
+	jobs := make(chan *http.Request, 50)
+	out := make(chan *error, 50)
 	// start workers
 	for i := 0; i < concurrency; i++ {
 		go func(i int) {
@@ -66,29 +66,29 @@ func testIntegration(origin string, concurrency, total int) {
 	// collect results
 	errs := 0
 	done := 0
-	for i := 0; i < total; i++ {
+	for done < total && errs < total {
 		err := <-out
 		if err != nil {
 			errs++
 		} else {
 			done++
-			printProgress(done, total)
+			printProgress(done, errs, total)
 		}
 	}
 	fmt.Printf("\n%d done and %d errors\n", done, errs)
 }
 
-func printProgress(done, total int) {
-	if done%10 == 0 {
+func printProgress(done, errs, total int) {
+	if done%10 == 0 || errs%10 == 0 {
 		if done >= 1000000 {
-			fmt.Printf("\r%.2fM requests", float32(done)/float32(1000000))
+			fmt.Printf("\r%.2fM requests done, and %d errors", float32(done)/float32(1000000), errs)
 			return
 		}
 		if done >= 1000 {
-			fmt.Printf("\r%.2fK requests", float32(done)/float32(1000))
+			fmt.Printf("\r%.2fK requests done, and %d errors", float32(done)/float32(1000), errs)
 			return
 		}
-		fmt.Printf("\r%d requests", done)
+		fmt.Printf("\r%d requests done, and %d errors", done, errs)
 	}
 }
 

@@ -14,7 +14,7 @@ primary_region = 'ams'
 
 [env]
   LSTN_EVENTS_FILE = '/data/events'
-  LSTN_MIN_REPORT_INTERVAL = '90s'
+  LSTN_MIN_REPORT_INTERVAL = '2m'
 
 [[mounts]]
   source = 'data'
@@ -30,8 +30,8 @@ primary_region = 'ams'
 
   [services.concurrency]
     type = 'requests'
-    hard_limit = 100000
-    soft_limit = 50000
+    hard_limit = 200000
+    soft_limit = 100000
 
 [[vm]]
   cpu_kind = 'shared'
