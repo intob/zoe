@@ -2,6 +2,7 @@ package app
 
 import "net/http"
 
+// handleGetReport is the HTTP handler for the /r endpoint.
 func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	if name == "" {

@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// handleRoot is the HTTP handler for the root endpoint.
 func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Cache-Control", "max-age=3600")

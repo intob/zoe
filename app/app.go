@@ -37,6 +37,7 @@ type client struct {
 	lastSeen time.Time
 }
 
+// NewApp creates & starts a new App.
 func NewApp(cfg *AppCfg) *App {
 	a := &App{
 		filename:     cfg.Filename,
@@ -59,6 +60,7 @@ func NewApp(cfg *AppCfg) *App {
 	return a
 }
 
+// serve starts the HTTP server.
 func (a *App) serve() {
 	mux := http.NewServeMux()
 	mux.Handle("/", a.rateLimitMiddleware(
@@ -75,6 +77,7 @@ func (a *App) serve() {
 	a.shutdown(server)
 }
 
+// handleRequest is the HTTP handler for all endpoints.
 func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -95,12 +98,14 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleGetJs is the HTTP handler for the /js endpoint.
 func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=3600")
 	w.Header().Set("Content-Type", "text/javascript")
 	http.ServeFile(w, r, "client.js")
 }
 
+// rateLimitMiddleware is a middleware that limits the rate of requests.
 func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limiter := a.getRateLimiter(r)
@@ -123,6 +128,7 @@ func (a *App) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// getRateLimiter returns a rate limiter for the given request.
 func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 	addr := r.Header.Get("Fly-Client-IP")
 	if addr == "" {
@@ -141,6 +147,7 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 	return v.limiter
 }
 
+// cleanupVisitors removes clients that have not been seen for 10 seconds.
 func (a *App) cleanupVisitors() {
 	for {
 		select {
@@ -158,6 +165,7 @@ func (a *App) cleanupVisitors() {
 	}
 }
 
+// shutdown attempts to gracefully shutdown the server.
 func (a *App) shutdown(server *http.Server) {
 	// Create a context with timeout for the server shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

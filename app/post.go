@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Handle event input
+// handlePost is the HTTP handler for the POST / endpoint.
 func (a *App) handlePost(w http.ResponseWriter, r *http.Request) {
 	evType, ok := ev.EvType_value[r.Header.Get("TYPE")]
 	if !ok {
