@@ -4,6 +4,7 @@ import "net/http"
 
 // handleGetReport is the HTTP handler for the /r endpoint.
 func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		http.Error(w, "missing name query parameter", http.StatusBadRequest)
@@ -14,7 +15,5 @@ func (a *App) handleGetReport(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "report not found", http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "max-age=60")
 	w.Write(report)
 }

@@ -99,6 +99,7 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetJs is the HTTP handler for the /js endpoint.
+// TODO: serve from memory
 func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=3600")
 	w.Header().Set("Content-Type", "text/javascript")
