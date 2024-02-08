@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	total = 100000 // make 100K requests
+	total = 10000000 // make 10M requests
 	prod  = "https://lstn.swissinfo.ch"
 )
 
@@ -72,10 +72,24 @@ func testIntegration(origin string, concurrency, total int) {
 			errs++
 		} else {
 			done++
-			fmt.Print(".")
+			printProgress(done, total)
 		}
 	}
 	fmt.Printf("\n%d done and %d errors\n", done, errs)
+}
+
+func printProgress(done, total int) {
+	if done%10 == 0 {
+		if done >= 1000000 {
+			fmt.Printf("\r%.2fM requests", float32(done)/float32(1000000))
+			return
+		}
+		if done >= 1000 {
+			fmt.Printf("\r%.2fK requests", float32(done)/float32(1000))
+			return
+		}
+		fmt.Printf("\r%d requests", done)
+	}
 }
 
 func readFileLines(fileName string) []string {
