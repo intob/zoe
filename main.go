@@ -63,7 +63,7 @@ func main() {
 			reportsRunner.Run()
 			tEnd := time.Now()
 			// occasionally log report running time
-			if time.Since(lastTimeLogged) > time.Second*30 {
+			if time.Since(lastTimeLogged) > time.Minute*5 {
 				fmt.Printf("reporting took %v\n", time.Since(tStart))
 				lastTimeLogged = time.Now()
 			}
