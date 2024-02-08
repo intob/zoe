@@ -37,7 +37,7 @@ func main() {
 					},
 				},
 			},
-			"top10-last-30d": {
+			"top10-last30d": {
 				Report: &report.Top{
 					N: 10,
 					Filter: func(e *ev.Ev) bool {
