@@ -28,7 +28,7 @@ func main() {
 	runnerCfg := &report.RunnerCfg{
 		Filename: filename,
 		Jobs: map[string]*report.Job{
-			"views-last-30d-cutoff10": {
+			"views-last30d-cutoff10": {
 				Report: &report.Views{
 					Cutoff:        10,
 					EstimatedSize: 1000,
@@ -37,7 +37,7 @@ func main() {
 					},
 				},
 			},
-			"top-10-last-30d": {
+			"top10-last-30d": {
 				Report: &report.Top{
 					N: 10,
 					Filter: func(e *ev.Ev) bool {
@@ -45,7 +45,7 @@ func main() {
 					},
 				},
 			},
-			"subset-last-7d-max3": {
+			"subset-last7d-max3": {
 				Report: &report.Subset{
 					Limit: 3,
 					Filter: func(e *ev.Ev) bool {
