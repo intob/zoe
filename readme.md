@@ -1,7 +1,9 @@
 # lstn
 An app that efficiently stores a very large number of tracking events.
+
 Reports are generated periodically, and can be requested over http.
 
+Built on only Gzip, Protobuf & Go's channels.
 
 ## Deploy from scratch
 ### Launch app on Fly
