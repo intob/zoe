@@ -57,7 +57,7 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			r.Run()
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
-			fmt.Printf("\r%s reporting took %v for %s evs",
+			fmt.Printf("\r%s reporting took %v for %s evs%%",
 				r.lastReportTime.Format(time.RFC3339),
 				r.lastReportDuration,
 				fmtCount(r.currentReportEventCount))
@@ -73,9 +73,13 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 // Run generates a report for each job
 func (r *Runner) Run() {
 	r.jobDone = make(chan *JobDone)
-	r.events = make(chan *ev.Ev, 100)
+	// TUNING: 2024-02-09
+	// ... in progress ...
+	r.events = make(chan *ev.Ev, 10000)
 	for jobName, job := range r.jobs {
-		job.events = make(chan *ev.Ev, 1)
+		// TUNING: 2024-02-09
+		// job events chan buffer size 2 seems optimal
+		job.events = make(chan *ev.Ev, 2)
 		go r.generateJobReport(job, jobName)
 	}
 	go r.readEventsFromFile()
@@ -137,6 +141,8 @@ func (r *Runner) sendEventsCollectResults() {
 	for name, job := range r.jobs {
 		runningJobs[name] = job
 	}
+	emptyChanCount := 0
+loop:
 	for {
 		select {
 		case e, ok := <-r.events:
@@ -160,9 +166,15 @@ func (r *Runner) sendEventsCollectResults() {
 			delete(runningJobs, j.Name)
 			countDone++
 			if countDone >= len(r.jobs) {
-				return
+				break loop
 			}
+		// TUNING: events & jobDone channels empty check
+		case <-time.After(time.Microsecond * 100):
+			emptyChanCount++
 		}
+	}
+	if emptyChanCount > 100 {
+		fmt.Println("emptyChanCount", emptyChanCount)
 	}
 }
 
