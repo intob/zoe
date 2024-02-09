@@ -9,11 +9,13 @@ import (
 	"runtime"
 	"strconv"
 	"testing"
+	"time"
+
+	"github.com/swissinfo-ch/lstn/report"
 )
 
 const (
-	total = 100000000 // make 100M requests
-	prod  = "https://lstn.swissinfo.ch"
+	prod = "https://lstn.swissinfo.ch"
 )
 
 func TestIntegration(t *testing.T) {
@@ -22,14 +24,23 @@ func TestIntegration(t *testing.T) {
 	if local {
 		origin = "http://localhost:8080"
 	}
+	count := 100000000 // 100M
+	countEnv, ok := os.LookupEnv("COUNT")
+	if ok {
+		var err error
+		count, err = strconv.Atoi(countEnv)
+		if err != nil {
+			panic(err)
+		}
+	}
 	if local {
-		testIntegration(origin, runtime.NumCPU()*16, total)
+		testIntegration(origin, runtime.NumCPU()*16, count)
 		return
 	}
-	testIntegration(origin, runtime.NumCPU()*128, total)
+	testIntegration(origin, runtime.NumCPU()*128, count)
 }
 
-func testIntegration(origin string, concurrency, total int) {
+func testIntegration(origin string, concurrency, count int) {
 	jobs := make(chan *http.Request, 50)
 	out := make(chan *error, 50)
 	// start workers
@@ -49,10 +60,10 @@ func testIntegration(origin string, concurrency, total int) {
 	// get test cids
 	cids := readFileLines(".testdata/cids.txt")
 	// make requests
-	fmt.Printf("making %d requests to %s using %d workers\n", total, origin, concurrency)
+	fmt.Printf("making %d requests to %s using %d workers\n", count, origin, concurrency)
 	randUsr := strconv.FormatUint(uint64(rand.Uint32()), 10)
 	go func() {
-		for i := 0; i < total; i++ {
+		for i := 0; i < count; i++ {
 			randSess := strconv.FormatUint(uint64(rand.Uint32()), 10)
 			r, _ := http.NewRequest("POST", origin, nil)
 			r.Header.Set("TYPE", "LOAD")
@@ -66,19 +77,22 @@ func testIntegration(origin string, concurrency, total int) {
 	// collect results
 	errs := 0
 	done := 0
-	for done < total && errs < total {
+	tStart := time.Now()
+	for done < count && errs < count {
 		err := <-out
 		if err != nil {
 			errs++
 		} else {
 			done++
-			printProgress(done, errs, total)
+			printProgress(done, errs)
 		}
 	}
-	fmt.Printf("\n%d done and %d errors\n", done, errs)
+	duration := time.Since(tStart)
+	evPerSec := report.FmtCount(uint32(float64(done) / duration.Seconds()))
+	fmt.Printf("\n%d done and %d errors in %s at %s ev/s\n", done, errs, duration.String(), evPerSec)
 }
 
-func printProgress(done, errs, total int) {
+func printProgress(done, errs int) {
 	if done%10 == 0 || errs%10 == 0 {
 		defer fmt.Print("\033[0K") // flush line
 		if done >= 1000000 {

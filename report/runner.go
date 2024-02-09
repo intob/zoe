@@ -60,7 +60,7 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			fmt.Printf("\r%s reporting took %v for %s evs",
 				r.lastReportTime.Format(time.RFC3339),
 				r.lastReportDuration,
-				fmtCount(r.currentReportEventCount))
+				FmtCount(r.currentReportEventCount))
 			fmt.Print("\033[0K") // flush line
 			// limit report running rate
 			if r.lastReportDuration < r.minReportInterval {

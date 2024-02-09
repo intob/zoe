@@ -2,7 +2,7 @@ package report
 
 import "fmt"
 
-func fmtCount(count uint32) string {
+func FmtCount(count uint32) string {
 	const unit = 1000
 	if count < unit {
 		return fmt.Sprintf("%d", count)
