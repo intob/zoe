@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -25,6 +26,7 @@ func main() {
 		panic(err)
 	}
 	file.Close()
+	fmt.Println("reading events from", filename)
 
 	// setup min report interval
 	minReportInterval := time.Second * 10
@@ -36,7 +38,19 @@ func main() {
 			panic(err)
 		}
 	}
-	fmt.Println("setting min report interval to", minReportInterval)
+	fmt.Println("min report interval set to", minReportInterval)
+
+	// setup block size
+	blockSize := 10000
+	blockSizeEnv, ok := os.LookupEnv("LSTN_BLOCK_SIZE")
+	if ok {
+		var err error
+		blockSize, err = strconv.Atoi(blockSizeEnv)
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("block size set to", blockSize)
 
 	// setup report runner
 	runnerCfg := &report.RunnerCfg{
@@ -46,24 +60,20 @@ func main() {
 				Report: &report.Views{
 					Cutoff:        10,
 					EstimatedSize: 1000,
-					Filter: func(e *ev.Ev) bool {
-						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*30)
-					},
+					MinEvTime:     uint32(time.Now().Add(-time.Hour).Unix()),
 				},
 			},
-			"top10-last30d": {
+			"views-top10-last30d": {
 				Report: &report.Top{
-					N: 10,
-					Filter: func(e *ev.Ev) bool {
-						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*30)
-					},
+					N:         10,
+					MinEvTime: uint32(time.Now().Add(-time.Hour * 24 * 30).Unix()),
 				},
 			},
-			"subset-last7d-max100k": {
+			"subset-views-max100k": {
 				Report: &report.Subset{
 					Limit: 100000,
 					Filter: func(e *ev.Ev) bool {
-						return e.EvType == ev.EvType_LOAD && report.YoungerThan(e, time.Hour*24*7)
+						return e.EvType == ev.EvType_LOAD
 					},
 				},
 			},
@@ -82,6 +92,7 @@ func main() {
 		ReportRunner: reportsRunner,
 		ReportNames:  reportNames,
 		Ctx:          ctx,
+		BlockSize:    blockSize,
 	})
 
 	// wait for context to be done

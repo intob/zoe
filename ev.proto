@@ -25,7 +25,7 @@ enum EvType {
   TIME = 2; // Time spent on a page
 }
 
-// Evs is a collection of events.
-message Evs {
+// Block is a collection of events.
+message Block {
   repeated Ev evs = 1;
 }

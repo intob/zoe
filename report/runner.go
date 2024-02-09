@@ -1,6 +1,8 @@
 package report
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -55,10 +57,10 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			r.Run()
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
-			fmt.Printf("\r%s reporting took %v for %d events",
+			fmt.Printf("\r%s reporting took %v for %s evs",
 				r.lastReportTime.Format(time.RFC3339),
 				r.lastReportDuration,
-				r.currentReportEventCount)
+				fmtCount(r.currentReportEventCount))
 			// limit report running rate
 			if r.lastReportDuration < r.minReportInterval {
 				time.Sleep(r.minReportInterval - r.lastReportDuration)
@@ -164,7 +166,6 @@ func (r *Runner) sendEventsCollectResults() {
 	}
 }
 
-// readEventsFromFile reads events from a file and sends them to the events channel
 func (r *Runner) readEventsFromFile() {
 	// Reset the event count
 	r.currentReportEventCount = 0
@@ -181,55 +182,81 @@ func (r *Runner) readEventsFromFile() {
 	if err != nil {
 		panic(err)
 	}
-	r.fileSize = fileInfo.Size()
+	fileSize := fileInfo.Size()
+	r.fileSize = fileSize
 
-	// Starting from the end of the file
-	offset := r.fileSize
-
-	for offset > 0 {
-		// Move back to read the length
-		offset -= 1
+	// Starting from the end of the file, read backwards
+	for fileSize > 0 {
+		// Move back to read the four-byte length at the end of the compressed event block
+		offset := fileSize - 4
 		_, err := file.Seek(offset, io.SeekStart)
 		if err != nil {
 			panic(fmt.Sprintf("failed to seek in file: %v", err))
 		}
 
-		// Read the event length
-		lengthByte := make([]byte, 1)
-		_, err = file.Read(lengthByte)
+		// Read the four-byte length, big endian
+		lengthBytes := make([]byte, 4)
+		_, err = file.Read(lengthBytes)
 		if err != nil {
-			panic(fmt.Sprintf("failed to read event length: %v", err))
+			panic(fmt.Sprintf("failed to read event size: %v", err))
 		}
-		length := int(lengthByte[0])
+		length := (int(lengthBytes[0]) << 24) + (int(lengthBytes[1]) << 16) + (int(lengthBytes[2]) << 8) + int(lengthBytes[3])
 
-		// Move back to read the event payload
+		// Validate length and ensure offset does not go beyond the file start
+		if length <= 0 || length > int(fileSize-4) {
+			fmt.Println("invalid block length or corrupted file")
+			break
+		}
+
+		// Move back to read the compressed block payload
 		offset -= int64(length)
+		if offset < 0 {
+			panic("offset calculated is beyond the file start, indicating a potential error in block length or file corruption")
+		}
 		_, err = file.Seek(offset, io.SeekStart)
 		if err != nil {
 			panic(fmt.Sprintf("failed to seek in file: %v", err))
 		}
 
-		// Read the event payload
-		data := make([]byte, length)
-		_, err = file.Read(data)
+		// Read the compressed block payload
+		compressedData := make([]byte, length)
+		_, err = file.Read(compressedData)
 		if err != nil {
-			panic(fmt.Sprintf("failed to read event payload: %v", err))
+			panic(fmt.Sprintf("failed to read compressed event payload: %v", err))
 		}
 
-		// Unmarshal the protobuf event
-		e := &ev.Ev{}
-		if err := proto.Unmarshal(data, e); err != nil {
-			panic(fmt.Sprintf("failed to unmarshal protobuf: %v", err))
+		// Decompress the block payload
+		gzr, err := gzip.NewReader(bytes.NewBuffer(compressedData))
+		if err != nil {
+			panic(fmt.Sprintf("failed to create gzip reader: %v", err))
+		}
+		decompressedData, err := io.ReadAll(gzr)
+		if err != nil {
+			panic(fmt.Sprintf("failed to decompress event payload: %v", err))
+		}
+		gzr.Close()
+
+		// Unmarshal the block
+		block := &ev.Block{}
+		if err := proto.Unmarshal(decompressedData, block); err != nil {
+			panic(fmt.Sprintf("failed to unmarshal block: %v", err))
 		}
 
-		// Send the event to the channel
-		r.events <- e
+		// Send the events to the channel
+		for _, e := range block.GetEvs() {
+			r.events <- e
+		}
 
 		// Increment the event count
-		r.currentReportEventCount++
+		r.currentReportEventCount += uint32(len(block.GetEvs()))
+
+		// Update fileSize to the new offset for the next iteration
+		fileSize = offset
 	}
-	// Close the events channel
+
+	// Close the events channel after reading all events
 	close(r.events)
+
 	// Update the last report event count
 	r.lastReportEventCount = r.currentReportEventCount
 }

@@ -22,11 +22,12 @@ type App struct {
 	reportRunner *report.Runner
 	reportNames  []string
 	commit       string
-	evBuffer     *ev.Evs
+	blockSize    int
 }
 
 type AppCfg struct {
 	Filename     string
+	BlockSize    int
 	ReportRunner *report.Runner
 	ReportNames  []string
 	Ctx          context.Context
@@ -47,7 +48,7 @@ func NewApp(cfg *AppCfg) *App {
 		reportRunner: cfg.ReportRunner,
 		reportNames:  cfg.ReportNames,
 		ctx:          cfg.Ctx,
-		evBuffer:     &ev.Evs{},
+		blockSize:    cfg.BlockSize,
 	}
 	commit, err := os.ReadFile("commit")
 	if err != nil {
@@ -140,7 +141,7 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 	key := r.Method + addr
 	v, exists := a.clients[key]
 	if !exists {
-		limiter := rate.NewLimiter(rate.Every(time.Second), 4)
+		limiter := rate.NewLimiter(rate.Every(time.Second), 10)
 		a.clients[key] = &client{limiter, time.Now()}
 		return limiter
 	}

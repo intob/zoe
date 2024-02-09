@@ -1,7 +1,9 @@
 package app
 
 import (
-	"errors"
+	"bytes"
+	"compress/gzip"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net/http"
@@ -71,11 +73,19 @@ func (a *App) writeEvents() {
 		panic(fmt.Sprintf("failed to open file: %v", err))
 	}
 	defer file.Close()
+	block := &ev.Block{
+		Evs: make([]*ev.Ev, 0, a.blockSize),
+	}
 	for {
 		select {
 		case e := <-a.events:
-			if err := a.writeEvent(file, e); err != nil {
-				panic(fmt.Sprintf("failed to write event: %v", err))
+			block.Evs = append(block.Evs, e)
+			if len(block.Evs) >= a.blockSize {
+				err := a.writeBlock(block, file)
+				if err != nil {
+					panic(fmt.Sprintf("failed to write block: %v", err))
+				}
+				block.Evs = make([]*ev.Ev, 0, a.blockSize)
 			}
 		case <-a.ctx.Done():
 			return
@@ -83,36 +93,41 @@ func (a *App) writeEvents() {
 	}
 }
 
-// writeEvent writes the event to the file
-// TODO: reverse the order of the parts
-// to optimize reading most recent events
-func (a *App) writeEvent(w io.Writer, e *ev.Ev) error {
-	// Marshal the protobuf event.
-	data, err := proto.Marshal(e)
+// writeBlock gzips & writes a block to the io.Writer
+func (a *App) writeBlock(block *ev.Block, w io.Writer) error {
+	gzbuf := &bytes.Buffer{}
+	gw := gzip.NewWriter(gzbuf)
+
+	// Marshal the block into protobuf data
+	data, err := proto.Marshal(block)
 	if err != nil {
-		return fmt.Errorf("failed to marshal protobuf: %w", err)
+		return fmt.Errorf("failed to marshal block: %w", err)
 	}
 
-	// Check if data length exceeds the maximum size of 35 bytes.
-	// TODO: calculate 35 from the protobuf definition.
-	if len(data) > 35 {
-		return fmt.Errorf("event size %d exceeds maximum of 35 bytes", len(data))
+	// Write marshaled data to gzip writer
+	if _, err := gw.Write(data); err != nil {
+		return fmt.Errorf("failed to write block: %w", err)
 	}
 
-	// Prepend the size as a single byte.
-	// Since we know the maximum size is 35 bytes, a single byte for size is sufficient.
-	sizeByte := byte(len(data))         // Convert the length of data to a single byte.
-	buf := make([]byte, 0, 1+len(data)) // Allocate buffer for size byte and data.
-	buf = append(buf, data...)          // Append the actual event data.
-	buf = append(buf, sizeByte)         // Append size byte.
-
-	// Write the buffer to the io.Writer.
-	n, err := w.Write(buf)
-	if err != nil {
-		return fmt.Errorf("failed to write to buffer: %w", err)
+	// It's crucial to close the gzip writer before accessing the buffer
+	// to ensure all data is flushed and compressed
+	if err := gw.Close(); err != nil {
+		return fmt.Errorf("failed to close gzip writer: %w", err)
 	}
-	if n != len(buf) {
-		return errors.New("failed to write all bytes to buffer")
+
+	// Write gzipped block to the io.Writer
+	gzippedData := gzbuf.Bytes() // Get the compressed data
+	if _, err := w.Write(gzippedData); err != nil {
+		return fmt.Errorf("failed to write gzipped block: %w", err)
+	}
+
+	// Convert the length of gzipped data to a 4-byte slice
+	lengthBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(lengthBytes, uint32(len(gzippedData)))
+
+	// Write the length bytes to the io.Writer
+	if _, err := w.Write(lengthBytes); err != nil {
+		return fmt.Errorf("failed to write gzipped block length: %w", err)
 	}
 
 	return nil

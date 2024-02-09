@@ -8,8 +8,8 @@ import (
 )
 
 type Top struct {
-	Filter func(*ev.Ev) bool
-	N      int
+	N         int    // number of top content ids to include in the report
+	MinEvTime uint32 // earliest time for events to be included in the report
 }
 
 // Define a heap structure to use with container/heap
@@ -43,22 +43,27 @@ func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
 	inHeap := make(map[uint32]bool) // Tracks whether a Cid is currently in the heap
 
 	for e := range events {
-		if t.Filter(e) {
-			cidViews[e.Cid]++
-			if inHeap[e.Cid] {
-				// If the item is in the heap, update its views in the heap.
-				// This is a simplified view; actual implementation may require finding the item and updating it.
-				// Consider using a custom method to update the item in the heap to maintain heap properties.
-			} else if len(*h) < t.N {
-				// If the heap is not full, add the item directly.
-				heap.Push(h, Item{Cid: e.Cid, Views: cidViews[e.Cid]})
-				inHeap[e.Cid] = true
-			} else if cidViews[e.Cid] > (*h)[0].Views {
-				// If the item has more views than the smallest in the heap, replace the smallest.
-				inHeap[heap.Pop(h).(Item).Cid] = false // Mark the removed item as not in the heap
-				heap.Push(h, Item{Cid: e.Cid, Views: cidViews[e.Cid]})
-				inHeap[e.Cid] = true
-			}
+		if e.Time < t.MinEvTime {
+			// events are ordered by time, so we can break here
+			break
+		}
+		if e.EvType != ev.EvType_LOAD {
+			continue
+		}
+		cidViews[e.Cid]++
+		if inHeap[e.Cid] {
+			// If the item is in the heap, update its views in the heap.
+			// This is a simplified view; actual implementation may require finding the item and updating it.
+			// Consider using a custom method to update the item in the heap to maintain heap properties.
+		} else if len(*h) < t.N {
+			// If the heap is not full, add the item directly.
+			heap.Push(h, Item{Cid: e.Cid, Views: cidViews[e.Cid]})
+			inHeap[e.Cid] = true
+		} else if cidViews[e.Cid] > (*h)[0].Views {
+			// If the item has more views than the smallest in the heap, replace the smallest.
+			inHeap[heap.Pop(h).(Item).Cid] = false // Mark the removed item as not in the heap
+			heap.Push(h, Item{Cid: e.Cid, Views: cidViews[e.Cid]})
+			inHeap[e.Cid] = true
 		}
 	}
 
