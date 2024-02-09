@@ -85,7 +85,7 @@ func (a *App) writeEvents() {
 				if err != nil {
 					panic(fmt.Sprintf("failed to write block: %v", err))
 				}
-				block.Evs = make([]*ev.Ev, 0, a.blockSize)
+				block.Reset()
 			}
 		case <-a.ctx.Done():
 			return

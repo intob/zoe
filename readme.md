@@ -2,8 +2,6 @@
 An app that efficiently stores a very large number of tracking events.
 Reports are generated periodically, and can be requested over http.
 
-Scaling? Later, if we need.
-Snapshots >> s3 asap.
 
 ## Deploy from scratch
 ### Launch app on Fly
@@ -61,13 +59,9 @@ While HTTP/1.1 does not compress headers, modern HTTP versions (HTTP/2 and HTTP/
 
 ## In progress
 
-### Write gzipped pages to filesystem (one file)
-Currently, every event is written to the filesystem individually without compression.
-
 ## To do
 
-### (maybe one day) Protect against slow poisoning
-Poisoning of the data is hard to prevent, and rather comically so as this is opensource. If needed... we can always cross-reference.
+### Snapshots >> s3
 
 ## From David
 - More meaningful & insightful analytics

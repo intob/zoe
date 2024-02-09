@@ -75,7 +75,7 @@ func (r *Runner) Run() {
 	r.jobDone = make(chan *JobDone)
 	r.events = make(chan *ev.Ev, 100)
 	for jobName, job := range r.jobs {
-		job.events = make(chan *ev.Ev, 4)
+		job.events = make(chan *ev.Ev, 1)
 		go r.generateJobReport(job, jobName)
 	}
 	go r.readEventsFromFile()
@@ -159,7 +159,7 @@ func (r *Runner) sendEventsCollectResults() {
 			r.results[j.Name] = j.Result
 			delete(runningJobs, j.Name)
 			countDone++
-			if len(r.jobs) == countDone {
+			if countDone >= len(r.jobs) {
 				return
 			}
 		}

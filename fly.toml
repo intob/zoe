@@ -15,11 +15,12 @@ primary_region = 'ams'
 [env]
   LSTN_EVENTS_FILE = '/data/events'
   LSTN_MIN_REPORT_INTERVAL = '30s'
-  LSTN_BLOCK_SIZE = '100000'
+  LSTN_BLOCK_SIZE = '10000'
 
 [[mounts]]
   source = 'data'
   destination = '/data'
+  initial_size = "1gb"
 
 [[services]]
   protocol = 'tcp'
@@ -36,5 +37,5 @@ primary_region = 'ams'
 
 [[vm]]
   cpu_kind = 'shared'
-  cpus = 1
-  memory = 256
+  cpus = 2
+  memory = 512
