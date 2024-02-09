@@ -80,15 +80,16 @@ func testIntegration(origin string, concurrency, total int) {
 
 func printProgress(done, errs, total int) {
 	if done%10 == 0 || errs%10 == 0 {
+		defer fmt.Print("\033[0K") // flush line
 		if done >= 1000000 {
-			fmt.Printf("\r%.2fM requests done, and %d errors%%", float32(done)/float32(1000000), errs)
+			fmt.Printf("\r%.2fM requests done, and %d errors", float32(done)/float32(1000000), errs)
 			return
 		}
 		if done >= 1000 {
-			fmt.Printf("\r%.2fK requests done, and %d errors%%", float32(done)/float32(1000), errs)
+			fmt.Printf("\r%.2fK requests done, and %d errors", float32(done)/float32(1000), errs)
 			return
 		}
-		fmt.Printf("\r%d requests done, and %d errors%%", done, errs)
+		fmt.Printf("\r%d requests done, and %d errors", done, errs)
 	}
 }
 

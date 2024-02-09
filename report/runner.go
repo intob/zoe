@@ -57,10 +57,11 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			r.Run()
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
-			fmt.Printf("\r%s reporting took %v for %s evs%%",
+			fmt.Printf("\r%s reporting took %v for %s evs",
 				r.lastReportTime.Format(time.RFC3339),
 				r.lastReportDuration,
 				fmtCount(r.currentReportEventCount))
+			fmt.Print("\033[0K") // flush line
 			// limit report running rate
 			if r.lastReportDuration < r.minReportInterval {
 				time.Sleep(r.minReportInterval - r.lastReportDuration)
@@ -74,7 +75,7 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 func (r *Runner) Run() {
 	r.jobDone = make(chan *JobDone)
 	// TUNING: 2024-02-09
-	// ... in progress ...
+	// r.events chan buffer size 10000 seems optimal
 	r.events = make(chan *ev.Ev, 10000)
 	for jobName, job := range r.jobs {
 		// TUNING: 2024-02-09
@@ -173,7 +174,7 @@ loop:
 			emptyChanCount++
 		}
 	}
-	if emptyChanCount > 100 {
+	if emptyChanCount > 0 {
 		fmt.Println("emptyChanCount", emptyChanCount)
 	}
 }
