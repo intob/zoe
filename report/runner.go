@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/swissinfo-ch/lstn/ev"
+	"github.com/swissinfo-ch/zoe/ev"
 	"google.golang.org/protobuf/proto"
 )
 

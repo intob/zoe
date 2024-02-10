@@ -13,7 +13,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!sessionStorage.sess) {
     sessionStorage.sess = randId()
   }
-  fetch("https://lstn.swissinfo.ch", {
+  fetch("https://zoe.swissinfo.ch", {
     method: "POST",
     headers: {
       "TYPE": "LOAD",

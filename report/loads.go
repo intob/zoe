@@ -3,7 +3,7 @@ package report
 import (
 	"encoding/json"
 
-	"github.com/swissinfo-ch/lstn/ev"
+	"github.com/swissinfo-ch/zoe/ev"
 )
 
 // Views implements the Report interface

@@ -3,7 +3,7 @@ package report
 import (
 	"time"
 
-	"github.com/swissinfo-ch/lstn/ev"
+	"github.com/swissinfo-ch/zoe/ev"
 )
 
 type Report interface {

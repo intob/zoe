@@ -1,9 +1,4 @@
-# fly.toml app configuration file generated for lstn-spring-surf-504 on 2024-02-06T04:35:23+01:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
-app = 'lstn-spring-surf-504'
+app = 'zoe'
 primary_region = 'ams'
 
 [build]
@@ -13,9 +8,9 @@ primary_region = 'ams'
   strategy = 'immediate'
 
 [env]
-  LSTN_EVENTS_FILE = '/data/events'
-  LSTN_MIN_REPORT_INTERVAL = '30s'
-  LSTN_BLOCK_SIZE = '10000'
+  ZOE_EVENTS_FILE = '/data/events'
+  ZOE_MIN_REPORT_INTERVAL = '30s'
+  ZOE_BLOCK_SIZE = '10000'
 
 [[mounts]]
   source = 'data'

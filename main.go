@@ -9,15 +9,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/swissinfo-ch/lstn/app"
-	"github.com/swissinfo-ch/lstn/ev"
-	"github.com/swissinfo-ch/lstn/report"
+	"github.com/swissinfo-ch/zoe/app"
+	"github.com/swissinfo-ch/zoe/ev"
+	"github.com/swissinfo-ch/zoe/report"
 )
 
 func main() {
 	// setup events file
 	filename := "events"
-	filenameEnv, ok := os.LookupEnv("LSTN_EVENTS_FILE")
+	filenameEnv, ok := os.LookupEnv("ZOE_EVENTS_FILE")
 	if ok {
 		filename = filenameEnv
 	}
@@ -30,7 +30,7 @@ func main() {
 
 	// setup min report interval
 	minReportInterval := time.Second * 10
-	minReportIntervalEnv, ok := os.LookupEnv("LSTN_MIN_REPORT_INTERVAL")
+	minReportIntervalEnv, ok := os.LookupEnv("ZOE_MIN_REPORT_INTERVAL")
 	if ok {
 		var err error
 		minReportInterval, err = time.ParseDuration(minReportIntervalEnv)
@@ -42,7 +42,7 @@ func main() {
 
 	// setup block size
 	blockSize := 10000
-	blockSizeEnv, ok := os.LookupEnv("LSTN_BLOCK_SIZE")
+	blockSizeEnv, ok := os.LookupEnv("ZOE_BLOCK_SIZE")
 	if ok {
 		var err error
 		blockSize, err = strconv.Atoi(blockSizeEnv)

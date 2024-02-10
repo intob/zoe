@@ -1,4 +1,4 @@
-module github.com/swissinfo-ch/lstn
+module github.com/swissinfo-ch/zoe
 
 go 1.21.6
 

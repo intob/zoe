@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/swissinfo-ch/lstn/ev"
-	"github.com/swissinfo-ch/lstn/report"
+	"github.com/swissinfo-ch/zoe/ev"
+	"github.com/swissinfo-ch/zoe/report"
 	"golang.org/x/time/rate"
 )
 

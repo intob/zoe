@@ -1,4 +1,4 @@
-# lstn
+# Zoe
 An app that efficiently stores a very large number of tracking events.
 
 Reports are generated periodically, and can be requested over http.

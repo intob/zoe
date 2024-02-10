@@ -19,16 +19,16 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 
 	// Generate the HTML response
 	responseHTML := `<html>
-	<head><title>LSTN</title></head>
+	<head><title>ZOE</title></head>
 	<body>
-		<h1>LSTN</h1>
+		<h1>ZOE</h1>
 		<code>commit ` + a.commit + `</code>
 		<p>Send events to <code>/</code> with headers <code>TYPE</code>, <code>USR</code>, <code>SESS</code> and <code>CID</code>. Optional headers: <code>SCROLLED</code> and <code>PAGE_SECONDS</code></p>
 		<p>Get reports from <code>/r</code> with query parameter <code>name</code>:</p>
 		<ul>` + listItemsHTML + `</ul>
 		<p>Get client-side script from <a href="/js">/js</a>.</p>
 		<p>Get report runner stats from <a href="/stat">/stat</a>.</p>
-		<p>See <a href="https://github.com/swissinfo-ch/lstn">github.com/swissinfo-ch/lstn</a> for more information.</p>
+		<p>See <a href="https://github.com/swissinfo-ch/zoe">github.com/swissinfo-ch/zoe</a> for more information.</p>
 	</body>
 </html>`
 

@@ -3,7 +3,7 @@ package report
 import (
 	"encoding/json"
 
-	"github.com/swissinfo-ch/lstn/ev"
+	"github.com/swissinfo-ch/zoe/ev"
 )
 
 // Subset is a report that returns a subset of events

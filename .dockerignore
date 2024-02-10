@@ -1,4 +1,4 @@
 # flyctl launch added from .gitignore
-**/lstn
+**/zoe
 **/events
 fly.toml

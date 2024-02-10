@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"encoding/json"
 
-	"github.com/swissinfo-ch/lstn/ev"
+	"github.com/swissinfo-ch/zoe/ev"
 )
 
 type Top struct {

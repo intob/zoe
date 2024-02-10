@@ -18,7 +18,7 @@ RUN apk update \
       -ldflags='-w -s -extldflags "-static"' \
       -mod=readonly \
       -a \
-      -o lstn .
+      -o zoe .
 
 #
 # STEP 2 build small image
@@ -28,8 +28,8 @@ FROM scratch
 # Copy zoneinfo for time zone support
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 # Copy binary and app files
-COPY --from=builder /app/lstn /lstn
+COPY --from=builder /app/zoe /zoe
 COPY --from=builder /app/client.js /client.js
 COPY --from=builder /app/commit /commit
 
-ENTRYPOINT ["/lstn"]
+ENTRYPOINT ["/zoe"]

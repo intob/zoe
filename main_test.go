@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/swissinfo-ch/lstn/report"
+	"github.com/swissinfo-ch/zoe/report"
 )
 
 const (
-	prod = "https://lstn.swissinfo.ch"
+	prod = "https://zoe.swissinfo.ch"
 )
 
 func TestIntegration(t *testing.T) {
