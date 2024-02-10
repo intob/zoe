@@ -1,9 +1,9 @@
 # Zoe
-Zoe efficiently stores a very large number of tracking events.
-
-Reports are generated periodically, and can be requested over http.
+Zoe efficiently stores & analyzes a very large number of tracking events.
 
 Built on only Gzip, Protobuf & Go's channels.
+
+The app runs directly on the Linux kernel. The built image is ~7.6MB.
 
 ## Run locally
 ```bash
