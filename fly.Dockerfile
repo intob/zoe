@@ -29,7 +29,7 @@ FROM scratch
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 # Copy binary and app files
 COPY --from=builder /app/zoe /zoe
-COPY --from=builder /app/static /static
+COPY --from=builder /app/assets /assets
 COPY --from=builder /app/commit /commit
 
 ENTRYPOINT ["/zoe"]

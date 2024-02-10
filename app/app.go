@@ -83,16 +83,26 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		switch r.URL.Path {
+		case "/":
+			a.handleRoot(w, r)
 		case "/r":
 			a.handleGetReport(w, r)
+		case "/js":
+			a.handleGetJS(w, r)
 		case "/stat":
 			a.handleGetStat(w, r)
 		default:
-			a.handleStatic(w, r)
+			http.NotFound(w, r)
 		}
 	case "POST":
 		a.handlePost(w, r)
 	}
+}
+
+func (a *App) handleGetJS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Header().Set("Cache-Control", "max-age=3600")
+	http.ServeFile(w, r, "assets/client.js")
 }
 
 // rateLimitMiddleware is a middleware that limits the rate of requests.
