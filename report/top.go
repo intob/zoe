@@ -8,8 +8,8 @@ import (
 )
 
 type Top struct {
-	N         int    // number of top content ids to include in the report
-	MinEvTime uint32 // earliest time for events to be included in the report
+	N         int           // number of top content ids to include in the report
+	MinEvTime func() uint32 // func that returns earliest time for events to be included in the report
 }
 
 // Define a heap structure to use with container/heap
@@ -37,13 +37,15 @@ func (h *ItemHeap) Pop() interface{} {
 
 // Generate returns a json representation of the top N content ids
 func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
+	minEvTime := t.MinEvTime()
+
 	h := &ItemHeap{}
 	heap.Init(h)
 	cidViews := make(map[uint32]uint32)
 	inHeap := make(map[uint32]bool) // Tracks whether a Cid is currently in the heap
 
 	for e := range events {
-		if e.Time < t.MinEvTime {
+		if e.Time < minEvTime {
 			// events are ordered by time, so we can break here
 			break
 		}

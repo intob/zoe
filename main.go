@@ -62,13 +62,17 @@ func main() {
 				Report: &report.Views{
 					Cutoff:        10,
 					EstimatedSize: 1000,
-					MinEvTime:     uint32(time.Now().Add(-time.Hour).Unix()),
+					MinEvTime: func() uint32 {
+						return uint32(time.Now().Add(-time.Hour * 24 * 30).Unix())
+					},
 				},
 			},
 			"views-top10-last30d": {
 				Report: &report.Top{
-					N:         10,
-					MinEvTime: uint32(time.Now().Add(-time.Hour * 24 * 30).Unix()),
+					N: 10,
+					MinEvTime: func() uint32 {
+						return uint32(time.Now().Add(-time.Hour * 24 * 30).Unix())
+					},
 				},
 			},
 			"subset-views-max100k": {
