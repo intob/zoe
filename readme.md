@@ -46,7 +46,7 @@ To store on disk, we also need an additional byte as a length prefix.
 Total maximum size including length prefix: **36 bytes**
 
 ## Why HTTP headers, no request body?
-TLDR; it saves bandwidth
+TLDR; it saves bandwidth & CPU cycles
 
 HTTP headers themselves are not compressed by default in the HTTP/1.1 protocol. In HTTP/1.1, both request and response headers are sent as plain text. This means that if you send a request or a response with a lot of headers or cookies, the overhead can be quite significant, especially for small request/response bodies.
 
