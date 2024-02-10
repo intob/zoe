@@ -16,9 +16,11 @@ type Views struct {
 }
 
 // Generate returns a json representation of the views per content id
-func (v *Views) Generate(events <-chan *ev.Ev) ([]byte, error) {
+func (v *Views) Generate(events <-chan *ev.Ev) (*Result, error) {
 	minEvTime := uint32(v.MinEvTime().Unix())
 	cidViews := make(map[uint32]uint32, v.EstimatedSize)
+
+	// range over events and count views per content id
 	for e := range events {
 		if e.Time < minEvTime {
 			// events are ordered by time, so we can break here
@@ -28,11 +30,21 @@ func (v *Views) Generate(events <-chan *ev.Ev) ([]byte, error) {
 			cidViews[e.Cid]++
 		}
 	}
+
 	// remove content ids with less than v.Cutoff views
 	for cid, views := range cidViews {
 		if views < uint32(v.Cutoff) {
 			delete(cidViews, cid)
 		}
 	}
-	return json.Marshal(cidViews)
+
+	data, err := json.Marshal(cidViews)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Content:     data,
+		ContentType: "application/json",
+	}, nil
 }

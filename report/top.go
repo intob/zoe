@@ -37,7 +37,7 @@ func (h *ItemHeap) Pop() interface{} {
 }
 
 // Generate returns a json representation of the top N content ids
-func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
+func (t *Top) Generate(events <-chan *ev.Ev) (*Result, error) {
 	minEvTime := uint32(t.MinEvTime().Unix())
 
 	h := &ItemHeap{}
@@ -90,5 +90,14 @@ func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
 		resultMap[item.Cid] = item.Views
 	}
 
-	return json.Marshal(resultMap)
+	data, err := json.Marshal(resultMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Content:     data,
+		ContentType: "application/json",
+	}, nil
+
 }

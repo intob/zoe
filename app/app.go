@@ -89,7 +89,7 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 		case "/":
 			a.handleRoot(w, r)
 		case "/r":
-			a.handleGetReport(w, r)
+			a.handleGetReportResult(w, r)
 		case "/js":
 			a.handleGetJS(w, r)
 		case "/stat":

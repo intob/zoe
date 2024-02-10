@@ -14,15 +14,26 @@ type Subset struct {
 }
 
 // Generate returns a json representation of the subset of events
-func (s *Subset) Generate(events <-chan *ev.Ev) ([]byte, error) {
-	data := make([]*ev.Ev, 0, s.Limit)
+func (s *Subset) Generate(events <-chan *ev.Ev) (*Result, error) {
+	raw := make([]*ev.Ev, 0, s.Limit)
+
+	// get the subset of events
 	for e := range events {
 		if s.Filter(e) {
-			data = append(data, e)
-			if len(data) >= s.Limit {
+			raw = append(raw, e)
+			if len(raw) >= s.Limit {
 				break
 			}
 		}
 	}
-	return json.Marshal(data)
+
+	data, err := json.Marshal(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Content:     data,
+		ContentType: "application/json",
+	}, nil
 }

@@ -6,8 +6,13 @@ import (
 	"github.com/swissinfo-ch/zoe/ev"
 )
 
+type Result struct {
+	ContentType string
+	Content     []byte
+}
+
 type Report interface {
-	Generate(<-chan *ev.Ev) ([]byte, error)
+	Generate(<-chan *ev.Ev) (*Result, error)
 }
 
 func YoungerThan(e *ev.Ev, d time.Duration) bool {

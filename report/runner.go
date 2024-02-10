@@ -23,7 +23,7 @@ type Runner struct {
 	workerPoolSize          int
 	minReportInterval       time.Duration
 	jobs                    map[string]*Job
-	results                 map[string][]byte
+	results                 map[string]*Result
 	jobDone                 chan *JobDone
 	events                  chan *ev.Ev
 	fileSize                int64
@@ -40,7 +40,7 @@ type Job struct {
 
 type JobDone struct {
 	Name   string
-	Result []byte
+	Result *Result
 }
 
 // NewRunner creates & starts a new report runner
@@ -51,12 +51,13 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 		workerPoolSize:    cfg.WorkerPoolSize,
 		minReportInterval: cfg.MinReportInterval,
 		jobs:              cfg.Jobs,
-		results:           make(map[string][]byte),
+		results:           make(map[string]*Result, len(cfg.Jobs)),
 	}
 	// Start the report runner
 	go func() {
 		for {
 			tStart := time.Now()
+			// TODO add context
 			r.run(context.TODO())
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
@@ -82,7 +83,7 @@ func (r *Runner) Jobs() map[string]*Job {
 }
 
 // Results returns the results of a job
-func (r *Runner) Results(jobName string) ([]byte, bool) {
+func (r *Runner) Result(jobName string) (*Result, bool) {
 	result, exists := r.results[jobName]
 	return result, exists
 }
