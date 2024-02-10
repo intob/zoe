@@ -14,6 +14,7 @@ import (
 
 type RunnerCfg struct {
 	Filename          string
+	BlockSize         int
 	Jobs              map[string]*Job
 	MinReportInterval time.Duration
 }
@@ -24,6 +25,7 @@ type Runner struct {
 	jobDone                 chan *JobDone
 	events                  chan *ev.Ev
 	filename                string
+	blockSize               int
 	fileSize                int64
 	currentReportEventCount uint32
 	lastReportEventCount    uint32
@@ -47,6 +49,7 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 	r := &Runner{
 		results:           make(map[string][]byte),
 		filename:          cfg.Filename,
+		blockSize:         cfg.BlockSize,
 		jobs:              cfg.Jobs,
 		minReportInterval: cfg.MinReportInterval,
 	}
@@ -57,10 +60,12 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			r.Run()
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
-			fmt.Printf("\r%s reporting took %v for %s evs",
+			evPerSec := FmtCount(uint32(float64(r.currentReportEventCount) / r.lastReportDuration.Seconds()))
+			fmt.Printf("\r%s reporting took %v for %s evs at %s ev/s",
 				r.lastReportTime.Format(time.RFC3339),
 				r.lastReportDuration,
-				FmtCount(r.currentReportEventCount))
+				FmtCount(r.currentReportEventCount),
+				evPerSec)
 			fmt.Print("\033[0K") // flush line
 			// limit report running rate
 			if r.lastReportDuration < r.minReportInterval {
@@ -75,12 +80,12 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 func (r *Runner) Run() {
 	r.jobDone = make(chan *JobDone)
 	// TUNING: 2024-02-09
-	// r.events chan buffer size 10000 seems optimal
-	r.events = make(chan *ev.Ev, 10000)
+	// buffer size equal to block size is optimal
+	r.events = make(chan *ev.Ev, r.blockSize)
 	for jobName, job := range r.jobs {
 		// TUNING: 2024-02-09
-		// job events chan buffer size 2 seems optimal
-		job.events = make(chan *ev.Ev, 2)
+		// job events chan buffer size 1 seems optimal
+		job.events = make(chan *ev.Ev, 1)
 		go r.generateJobReport(job, jobName)
 	}
 	go r.readEventsFromFile()
@@ -175,7 +180,7 @@ loop:
 		}
 	}
 	if emptyChanCount > 0 {
-		fmt.Println("emptyChanCount", emptyChanCount)
+		fmt.Println(" emptyChanCount", emptyChanCount)
 	}
 }
 

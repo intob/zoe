@@ -55,6 +55,7 @@ func main() {
 	// setup report runner
 	runnerCfg := &report.RunnerCfg{
 		Filename:          filename,
+		BlockSize:         blockSize,
 		MinReportInterval: minReportInterval,
 		Jobs: map[string]*report.Job{
 			"views-last30d-cutoff10": {

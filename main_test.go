@@ -34,9 +34,11 @@ func TestIntegration(t *testing.T) {
 		}
 	}
 	if local {
-		testIntegration(origin, runtime.NumCPU()*16, count)
+		// 2 is optimal on my machine, guessing it's pretty good
+		testIntegration(origin, 2, count)
 		return
 	}
+	// this works well for me
 	testIntegration(origin, runtime.NumCPU()*128, count)
 }
 
