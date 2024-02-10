@@ -43,7 +43,8 @@ func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
 	h := &ItemHeap{}
 	heap.Init(h)
 	cidViews := make(map[uint32]uint32)
-	inHeap := make(map[uint32]bool) // Tracks whether a Cid is currently in the heap
+	inHeap := make(map[uint32]bool)   // Tracks whether a Cid is currently in the heap
+	itemIndex := make(map[uint32]int) // Tracks the index of items in the heap
 
 	for e := range events {
 		if e.Time < minEvTime {
@@ -55,18 +56,24 @@ func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
 		}
 		cidViews[e.Cid]++
 		if inHeap[e.Cid] {
-			// If the item is in the heap, update its views in the heap.
-			// This is a simplified view; actual implementation may require finding the item and updating it.
-			// Consider using a custom method to update the item in the heap to maintain heap properties.
+			// Update the item's views count in the heap.
+			index := itemIndex[e.Cid]
+			(*h)[index].Views = cidViews[e.Cid]
+			heap.Fix(h, index) // Reheapify after the update
 		} else if len(*h) < t.N {
 			// If the heap is not full, add the item directly.
 			heap.Push(h, Item{Cid: e.Cid, Views: cidViews[e.Cid]})
 			inHeap[e.Cid] = true
+			itemIndex[e.Cid] = len(*h) - 1 // Store the index of the newly added item
 		} else if cidViews[e.Cid] > (*h)[0].Views {
 			// If the item has more views than the smallest in the heap, replace the smallest.
-			inHeap[heap.Pop(h).(Item).Cid] = false // Mark the removed item as not in the heap
+			removedItem := heap.Pop(h).(Item)
+			inHeap[removedItem.Cid] = false    // Mark the removed item as not in the heap
+			delete(itemIndex, removedItem.Cid) // Remove the index reference for the removed item
+
 			heap.Push(h, Item{Cid: e.Cid, Views: cidViews[e.Cid]})
 			inHeap[e.Cid] = true
+			itemIndex[e.Cid] = 0 // The pushed item takes the place of the popped item at the root
 		}
 	}
 
@@ -74,7 +81,7 @@ func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
 	topN := make([]Item, h.Len())
 	for i := len(topN) - 1; i >= 0; i-- {
 		topN[i] = heap.Pop(h).(Item)
-		inHeap[topN[i].Cid] = false // Technically unnecessary as we're done, but good for completeness
+		// inHeap[topN[i].Cid] = false // Technically unnecessary as we're done
 	}
 
 	// Convert to map for final JSON output
