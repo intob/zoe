@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for zoe-winter-water-3664-hidden-fire-9138 on 2024-02-10T09:04:25+01:00
+# fly.toml app configuration file generated for zoe on 2024-02-10T09:07:16+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'zoe-winter-water-3664-hidden-fire-9138'
+app = 'zoe'
 primary_region = 'ams'
 
 [build]
