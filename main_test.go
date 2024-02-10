@@ -62,7 +62,8 @@ func testIntegration(origin string, concurrency, count int) {
 	// get test cids
 	cids := readFileLines(".testdata/cids.txt")
 	// make requests
-	fmt.Printf("making %d requests to %s using %d workers\n", count, origin, concurrency)
+	fmt.Printf("making %s requests to %s using %d workers\n",
+		report.FmtCount(uint32(count)), origin, concurrency)
 	randUsr := strconv.FormatUint(uint64(rand.Uint32()), 10)
 	go func() {
 		for i := 0; i < count; i++ {
@@ -91,21 +92,15 @@ func testIntegration(origin string, concurrency, count int) {
 	}
 	duration := time.Since(tStart)
 	evPerSec := report.FmtCount(uint32(float64(done) / duration.Seconds()))
-	fmt.Printf("\n%d done and %d errors in %s at %s ev/s\n", done, errs, duration.String(), evPerSec)
+	fmt.Printf("\n%s done and %s errors in %s at %s ev/s\n",
+		report.FmtCount(uint32(done)), report.FmtCount(uint32(errs)), duration.String(), evPerSec)
 }
 
 func printProgress(done, errs int) {
-	if done%10 == 0 || errs%10 == 0 {
-		defer fmt.Print("\033[0K") // flush line
-		if done >= 1000000 {
-			fmt.Printf("\r%.2fM requests done, and %d errors", float32(done)/float32(1000000), errs)
-			return
-		}
-		if done >= 1000 {
-			fmt.Printf("\r%.2fK requests done, and %d errors", float32(done)/float32(1000), errs)
-			return
-		}
-		fmt.Printf("\r%d requests done, and %d errors", done, errs)
+	if done%10000 == 0 || errs%10 == 0 {
+		fmt.Printf("\r%s requests done, and %s errors",
+			report.FmtCount(uint32(done)), report.FmtCount(uint32(errs)))
+		fmt.Print("\033[0K") // flush line
 	}
 }
 
