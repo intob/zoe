@@ -1,17 +1,12 @@
 package report
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"github.com/swissinfo-ch/zoe/ev"
 	"github.com/swissinfo-ch/zoe/worker"
-	"google.golang.org/protobuf/proto"
 )
 
 type RunnerCfg struct {
@@ -62,14 +57,14 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 	go func() {
 		for {
 			tStart := time.Now()
-			r.run()
+			r.run(context.TODO())
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
-			evPerSec := FmtCount(uint32(float64(r.currentReportEventCount) / r.lastReportDuration.Seconds()))
+			evPerSec := FmtCount(uint32(float64(r.lastReportEventCount) / r.lastReportDuration.Seconds()))
 			fmt.Printf("\r%s reporting took %v for %s evs at %s ev/s",
 				r.lastReportTime.Format(time.RFC3339),
 				r.lastReportDuration,
-				FmtCount(r.currentReportEventCount),
+				FmtCount(r.lastReportEventCount),
 				evPerSec)
 			fmt.Print("\033[0K") // flush line
 			// limit report running rate
@@ -118,8 +113,8 @@ func (r *Runner) FileSize() int64 {
 }
 
 // run generates a report for each job
-func (r *Runner) run() {
-	r.jobDone = make(chan *JobDone)
+func (r *Runner) run(ctx context.Context) {
+	r.jobDone = make(chan *JobDone, len(r.jobs))
 	// TUNING: 2024-02-09
 	// buffer size equal to block size is optimal
 	r.events = make(chan *ev.Ev, r.blockSize)
@@ -131,7 +126,7 @@ func (r *Runner) run() {
 		go r.generateJobReport(job, jobName)
 	}
 	go r.readEventsFromFile()
-	r.sendEventsCollectResults(context.TODO())
+	r.sendEventsCollectResults(ctx)
 }
 
 // generateReport generates a report for a job
@@ -150,13 +145,14 @@ func (r *Runner) sendEventsCollectResults(ctx context.Context) {
 	workerPool := worker.NewPool(r.workerPoolSize)
 	workerPool.Start()
 
-	countDone := 0
 	runningJobs := make(map[string]*Job, len(r.jobs))
 
 	// Copy job references to manage individual job event channels safely
 	for name, job := range r.jobs {
 		runningJobs[name] = job
 	}
+
+	r.currentReportEventCount = 0
 
 loop:
 	for {
@@ -166,6 +162,7 @@ loop:
 				// If the events channel is closed, it's time to cleanup and exit
 				break loop
 			}
+
 			// Dispatch a job to handle the event
 			workerPool.Dispatch(func() {
 				for _, job := range runningJobs {
@@ -184,120 +181,37 @@ loop:
 					}
 				}
 			})
-		case j := <-r.jobDone:
-			r.results[j.Name] = j.Result
-			delete(runningJobs, j.Name)
-			countDone++
-			if countDone >= len(r.jobs) {
-				// All jobs are done, it's time to exit the loop
-				break loop
-			}
+
+			// Increment the event count
+			r.currentReportEventCount++
 		case <-ctx.Done():
 			// Shutdown signal received, exit the loop
 			break loop
 		}
 	}
 
-	// Wait for all dispatched jobs to finish before closing job event channels
-	workerPool.StopAndWait() // Assuming your worker pool has a Wait method to wait for all dispatched jobs to complete
+	// Wait for all dispatched jobs to finish
+	workerPool.StopAndWait()
 
 	// Safely close all job event channels after all work is done
 	for _, job := range runningJobs {
 		close(job.events)
 	}
-}
 
-func (r *Runner) readEventsFromFile() {
-	// Reset the event count
-	r.currentReportEventCount = 0
-
-	// Open the file
-	file, err := os.Open(r.filename)
-	if err != nil {
-		panic(fmt.Sprintf("failed to open file for reading: %v", err))
-	}
-	defer file.Close()
-
-	// Get the file size
-	fileInfo, err := file.Stat()
-	if err != nil {
-		panic(err)
-	}
-	fileSize := fileInfo.Size()
-	r.fileSize = fileSize
-
-	// Starting from the end of the file, read backwards
-	for fileSize > 0 {
-		// Move back to read the four-byte length at the end of the compressed event block
-		offset := fileSize - 4
-		_, err := file.Seek(offset, io.SeekStart)
-		if err != nil {
-			panic(fmt.Sprintf("failed to seek in file: %v", err))
-		}
-
-		// Read the four-byte length, big endian
-		lengthBytes := make([]byte, 4)
-		_, err = file.Read(lengthBytes)
-		if err != nil {
-			panic(fmt.Sprintf("failed to read event size: %v", err))
-		}
-		length := (int(lengthBytes[0]) << 24) + (int(lengthBytes[1]) << 16) + (int(lengthBytes[2]) << 8) + int(lengthBytes[3])
-
-		// Validate length and ensure offset does not go beyond the file start
-		if length <= 0 || length > int(fileSize-4) {
-			fmt.Println("invalid block length or corrupted file")
+	// Collect results
+	done := 0
+	for {
+		j, ok := <-r.jobDone
+		if !ok {
+			fmt.Println("jobDone channel closed unexpectedly")
 			break
 		}
-
-		// Move back to read the compressed block payload
-		offset -= int64(length)
-		if offset < 0 {
-			panic("offset calculated is beyond the file start, indicating a potential error in block length or file corruption")
+		r.results[j.Name] = j.Result
+		done++
+		if done >= len(r.jobs) {
+			break
 		}
-		_, err = file.Seek(offset, io.SeekStart)
-		if err != nil {
-			panic(fmt.Sprintf("failed to seek in file: %v", err))
-		}
-
-		// Read the compressed block payload
-		compressedData := make([]byte, length)
-		_, err = file.Read(compressedData)
-		if err != nil {
-			panic(fmt.Sprintf("failed to read compressed event payload: %v", err))
-		}
-
-		// Decompress the block payload
-		gzr, err := gzip.NewReader(bytes.NewBuffer(compressedData))
-		if err != nil {
-			panic(fmt.Sprintf("failed to create gzip reader: %v", err))
-		}
-		decompressedData, err := io.ReadAll(gzr)
-		if err != nil {
-			panic(fmt.Sprintf("failed to decompress event payload: %v", err))
-		}
-		gzr.Close()
-
-		// Unmarshal the block
-		block := &ev.Block{}
-		if err := proto.Unmarshal(decompressedData, block); err != nil {
-			panic(fmt.Sprintf("failed to unmarshal block: %v", err))
-		}
-
-		// Send the events to the channel
-		for _, e := range block.GetEvs() {
-			r.events <- e
-		}
-
-		// Increment the event count
-		r.currentReportEventCount += uint32(len(block.GetEvs()))
-
-		// Update fileSize to the new offset for the next iteration
-		fileSize = offset
 	}
 
-	// Close the events channel after reading all events
-	close(r.events)
-
-	// Update the last report event count
 	r.lastReportEventCount = r.currentReportEventCount
 }
