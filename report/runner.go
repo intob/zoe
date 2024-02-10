@@ -179,7 +179,7 @@ loop:
 			emptyChanCount++
 		}
 	}
-	if emptyChanCount > 0 {
+	if emptyChanCount > 100 {
 		fmt.Println(" emptyChanCount", emptyChanCount)
 	}
 }
