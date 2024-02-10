@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -24,6 +25,7 @@ type App struct {
 	commit              string
 	blockSize           int
 	rateLimitBucketSize int
+	numCPU              int
 }
 
 type AppCfg struct {
@@ -52,6 +54,7 @@ func NewApp(cfg *AppCfg) *App {
 		ctx:                 cfg.Ctx,
 		blockSize:           cfg.BlockSize,
 		rateLimitBucketSize: cfg.RateLimitBucketSize,
+		numCPU:              runtime.NumCPU(),
 	}
 	commit, err := os.ReadFile("commit")
 	if err != nil {

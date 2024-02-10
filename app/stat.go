@@ -13,6 +13,7 @@ type Stat struct {
 	LastReportDuration      string `json:"lastReportDuration"`      // duration of the last report
 	LastReportTime          int64  `json:"lastReportTime"`          // Unix timestamp of the last report
 	Commit                  string `json:"commit"`                  // Git commit hash
+	NumCPU                  int    `json:"numCPU"`                  // number of CPU cores
 }
 
 // handleGetStat is the HTTP handler for the /stat endpoint.
@@ -25,6 +26,7 @@ func (a *App) handleGetStat(w http.ResponseWriter, r *http.Request) {
 		LastReportDuration:      a.reportRunner.LastReportDuration().String(),
 		LastReportTime:          a.reportRunner.LastReportTime().Unix(),
 		Commit:                  a.commit,
+		NumCPU:                  a.numCPU,
 	}
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
