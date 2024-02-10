@@ -62,8 +62,9 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
 			evPerSec := FmtCount(uint32(float64(r.lastReportEventCount) / r.lastReportDuration.Seconds()))
-			fmt.Printf("\r%s reporting took %v for %s evs at %s ev/s",
+			fmt.Printf("\r%s // %s // reporting took %v for %s evs at %s ev/s",
 				r.lastReportTime.Format(time.RFC3339),
+				FmtFileSize(r.fileSize),
 				r.lastReportDuration,
 				FmtCount(r.lastReportEventCount),
 				evPerSec)
