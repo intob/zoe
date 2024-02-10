@@ -1,4 +1,9 @@
-app = 'zoe'
+# fly.toml app configuration file generated for zoe-winter-water-3664-hidden-fire-9138 on 2024-02-10T09:04:25+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'zoe-winter-water-3664-hidden-fire-9138'
 primary_region = 'ams'
 
 [build]
@@ -8,14 +13,14 @@ primary_region = 'ams'
   strategy = 'immediate'
 
 [env]
+  ZOE_BLOCK_SIZE = '10000'
   ZOE_EVENTS_FILE = '/data/events'
   ZOE_MIN_REPORT_INTERVAL = '30s'
-  ZOE_BLOCK_SIZE = '10000'
 
 [[mounts]]
   source = 'data'
   destination = '/data'
-  initial_size = "1gb"
+  initial_size = '1gb'
 
 [[services]]
   protocol = 'tcp'
@@ -33,4 +38,4 @@ primary_region = 'ams'
 [[vm]]
   cpu_kind = 'shared'
   cpus = 2
-  memory = 512
+  memory_mb = 512
