@@ -83,9 +83,10 @@ func (r *Runner) Run() {
 	// buffer size equal to block size is optimal
 	r.events = make(chan *ev.Ev, r.blockSize)
 	for jobName, job := range r.jobs {
-		// TUNING: 2024-02-09
-		// job events chan buffer size 1 seems optimal
-		job.events = make(chan *ev.Ev, 1)
+		// TUNING: 2024-02-10
+		// job events chan buffer size 2 seems optimal,
+		// otherwise sendEventsCollectResults will block
+		job.events = make(chan *ev.Ev, 2)
 		go r.generateJobReport(job, jobName)
 	}
 	go r.readEventsFromFile()
@@ -147,7 +148,8 @@ func (r *Runner) sendEventsCollectResults() {
 	for name, job := range r.jobs {
 		runningJobs[name] = job
 	}
-	emptyChanCount := 0
+	eventChanBlockedReads := 0
+	jobEventChanBlockedWrites := 0
 loop:
 	for {
 		select {
@@ -163,8 +165,12 @@ loop:
 				select {
 				case job.events <- e:
 					// event sent
-				case <-time.After(time.Microsecond * 50):
-					// timeout
+				// TUINING: 2024-02-10
+				// wait up to 1ms for job events chan to be ready,
+				// otherwise, bin event & increment counter
+				// TODO: try running each send concurrently
+				case <-time.After(time.Millisecond):
+					jobEventChanBlockedWrites++
 				}
 			}
 		case j := <-r.jobDone:
@@ -174,13 +180,15 @@ loop:
 			if countDone >= len(r.jobs) {
 				break loop
 			}
-		// TUNING: events & jobDone channels empty check
-		case <-time.After(time.Microsecond * 100):
-			emptyChanCount++
+		case <-time.After(time.Millisecond):
+			eventChanBlockedReads++
 		}
 	}
-	if emptyChanCount > 100 {
-		fmt.Println(" emptyChanCount", emptyChanCount)
+	if eventChanBlockedReads > 100 {
+		fmt.Println(" eventChanBlockedReads", eventChanBlockedReads)
+	}
+	if jobEventChanBlockedWrites > 100 {
+		fmt.Println(" jobEventChanBlockedWrites", jobEventChanBlockedWrites)
 	}
 }
 

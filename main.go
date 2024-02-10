@@ -58,20 +58,20 @@ func main() {
 		BlockSize:         blockSize,
 		MinReportInterval: minReportInterval,
 		Jobs: map[string]*report.Job{
-			"views-last30d-cutoff10": {
+			"views-cutoff1000-last30d": {
 				Report: &report.Views{
-					Cutoff:        10,
-					EstimatedSize: 1000,
-					MinEvTime: func() uint32 {
-						return uint32(time.Now().Add(-time.Hour * 24 * 30).Unix())
+					Cutoff:        1000,
+					EstimatedSize: 10000,
+					MinEvTime: func() time.Time {
+						return time.Now().Add(-time.Hour * 24 * 30)
 					},
 				},
 			},
 			"views-top10-last30d": {
 				Report: &report.Top{
 					N: 10,
-					MinEvTime: func() uint32 {
-						return uint32(time.Now().Add(-time.Hour * 24 * 30).Unix())
+					MinEvTime: func() time.Time {
+						return time.Now().Add(-time.Hour * 24 * 30)
 					},
 				},
 			},

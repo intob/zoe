@@ -3,13 +3,14 @@ package report
 import (
 	"container/heap"
 	"encoding/json"
+	"time"
 
 	"github.com/swissinfo-ch/zoe/ev"
 )
 
 type Top struct {
-	N         int           // number of top content ids to include in the report
-	MinEvTime func() uint32 // func that returns earliest time for events to be included in the report
+	N         int              // number of top content ids to include in the report
+	MinEvTime func() time.Time // func that returns earliest time for events to be included in the report
 }
 
 // Define a heap structure to use with container/heap
@@ -37,7 +38,7 @@ func (h *ItemHeap) Pop() interface{} {
 
 // Generate returns a json representation of the top N content ids
 func (t *Top) Generate(events <-chan *ev.Ev) ([]byte, error) {
-	minEvTime := t.MinEvTime()
+	minEvTime := uint32(t.MinEvTime().Unix())
 
 	h := &ItemHeap{}
 	heap.Init(h)
