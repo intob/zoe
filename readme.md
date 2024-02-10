@@ -64,6 +64,8 @@ HTTP/3, which builds on the QUIC transport protocol, uses QPACK for header compr
 
 While HTTP/1.1 does not compress headers, modern HTTP versions (HTTP/2 and HTTP/3) include mechanisms for header compression (HPACK and QPACK, respectively). These improvements significantly enhance the efficiency of web communication, especially for applications that make frequent or numerous HTTP requests.
 
+One more thing to note is that the headers are always processed, but the request body not. Rather than reading from the body, we can make use of the computation already done to parse the headers.
+
 ## In progress
 
 ## To do
