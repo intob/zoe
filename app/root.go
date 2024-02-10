@@ -19,9 +19,9 @@ func (a *App) handleRoot(w http.ResponseWriter, r *http.Request) {
 
 	// Generate the HTML response
 	responseHTML := `<html>
-	<head><title>ZOE</title></head>
+	<head><title>Zoe</title></head>
 	<body>
-		<h1>ZOE</h1>
+		<h1>Zoe</h1>
 		<code>commit ` + a.commit + `</code>
 		<p>Send events to <code>/</code> with headers <code>TYPE</code>, <code>USR</code>, <code>SESS</code> and <code>CID</code>. Optional headers: <code>SCROLLED</code> and <code>PAGE_SECONDS</code></p>
 		<p>Get reports from <code>/r</code> with query parameter <code>name</code>:</p>
