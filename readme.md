@@ -1,9 +1,15 @@
 # Zoe
-An app that efficiently stores a very large number of tracking events.
+Zoe efficiently stores a very large number of tracking events.
 
 Reports are generated periodically, and can be requested over http.
 
 Built on only Gzip, Protobuf & Go's channels.
+
+## Run locally
+```bash
+git rev-parse HEAD >> commit # commit id is served
+go run .
+```
 
 ## Deploy from scratch
 ### Launch app on Fly
