@@ -14,23 +14,25 @@ import (
 )
 
 type App struct {
-	ctx          context.Context
-	clients      map[string]*client // writer:addr or reader:addr
-	clientMu     sync.Mutex
-	events       chan *ev.Ev
-	filename     string
-	reportRunner *report.Runner
-	reportNames  []string
-	commit       string
-	blockSize    int
+	ctx                 context.Context
+	clients             map[string]*client // writer:addr or reader:addr
+	clientMu            sync.Mutex
+	events              chan *ev.Ev
+	filename            string
+	reportRunner        *report.Runner
+	reportNames         []string
+	commit              string
+	blockSize           int
+	rateLimitBucketSize int
 }
 
 type AppCfg struct {
-	Filename     string
-	BlockSize    int
-	ReportRunner *report.Runner
-	ReportNames  []string
-	Ctx          context.Context
+	Filename            string
+	BlockSize           int
+	ReportRunner        *report.Runner
+	ReportNames         []string
+	Ctx                 context.Context
+	RateLimitBucketSize int
 }
 
 type client struct {
@@ -41,14 +43,15 @@ type client struct {
 // NewApp creates & starts a new App.
 func NewApp(cfg *AppCfg) *App {
 	a := &App{
-		filename:     cfg.Filename,
-		clients:      make(map[string]*client),
-		clientMu:     sync.Mutex{},
-		events:       make(chan *ev.Ev, 100),
-		reportRunner: cfg.ReportRunner,
-		reportNames:  cfg.ReportNames,
-		ctx:          cfg.Ctx,
-		blockSize:    cfg.BlockSize,
+		filename:            cfg.Filename,
+		clients:             make(map[string]*client),
+		clientMu:            sync.Mutex{},
+		events:              make(chan *ev.Ev, 100),
+		reportRunner:        cfg.ReportRunner,
+		reportNames:         cfg.ReportNames,
+		ctx:                 cfg.Ctx,
+		blockSize:           cfg.BlockSize,
+		rateLimitBucketSize: cfg.RateLimitBucketSize,
 	}
 	commit, err := os.ReadFile("commit")
 	if err != nil {
@@ -92,7 +95,7 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 		case "/stat":
 			a.handleGetStat(w, r)
 		default:
-			http.NotFound(w, r)
+			http.ServeFile(w, r, "assets"+r.URL.Path)
 		}
 	case "POST":
 		a.handlePost(w, r)
@@ -139,7 +142,7 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 	key := r.Method + addr
 	v, exists := a.clients[key]
 	if !exists {
-		limiter := rate.NewLimiter(rate.Every(time.Second), 10)
+		limiter := rate.NewLimiter(rate.Every(time.Second), a.rateLimitBucketSize)
 		a.clients[key] = &client{limiter, time.Now()}
 		return limiter
 	}

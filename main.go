@@ -108,11 +108,12 @@ func main() {
 	}
 	ctx := getCtx()
 	app.NewApp(&app.AppCfg{
-		Filename:     filename,
-		ReportRunner: reportsRunner,
-		ReportNames:  reportNames,
-		Ctx:          ctx,
-		BlockSize:    blockSize,
+		Filename:            filename,
+		ReportRunner:        reportsRunner,
+		ReportNames:         reportNames,
+		Ctx:                 ctx,
+		BlockSize:           blockSize,
+		RateLimitBucketSize: 100,
 	})
 
 	// wait for context to be done

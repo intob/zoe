@@ -6,24 +6,51 @@ function randCidForNow() {
   return Math.floor(Math.random() * 10)
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  if (!localStorage.usr) {
-    localStorage.usr = randId()
-  }
-  if (!sessionStorage.sess) {
-    sessionStorage.sess = randId()
-  }
-  fetch("https://zoe.swissinfo.ch", {
+// TODO: get the current article id
+const cid = randCidForNow()
+
+// set user and session id
+if (!localStorage.usr) {
+  localStorage.usr = randId()
+}
+if (!sessionStorage.sess) {
+  sessionStorage.sess = randId()
+}
+
+// send time every 5 seconds
+setInterval(async () => {
+  // make request
+  await fetch("https://zoe.swissinfo.ch", {
     method: "POST",
     headers: {
-      "TYPE": "LOAD",
+      "TYPE": "TIME",
       "USR": localStorage.usr,
       "SESS": sessionStorage.sess,
-      "CID": randCidForNow()
+      "CID": cid,
+    }
+  })
+}, 5000)
+
+// send scroll info on unload
+window.addEventListener("beforeunload", async() => {
+  // make request
+  await fetch("https://zoe.swissinfo.ch", {
+    method: "POST",
+    headers: {
+      "TYPE": "UNLOAD",
+      "USR": localStorage.usr,
+      "SESS": sessionStorage.sess,
+      "CID": cid,
     }
   })
 })
 
-window.addEventListener("beforeunload", async() => {
-  // make request
+fetch("https://zoe.swissinfo.ch", {
+  method: "POST",
+  headers: {
+    "TYPE": "LOAD",
+    "USR": localStorage.usr,
+    "SESS": sessionStorage.sess,
+    "CID": cid,
+  }
 })
