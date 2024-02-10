@@ -13,7 +13,6 @@ go run .
 
 ## Deploy from scratch
 ### Launch app on Fly
-The defaults are fine.
 ```bash
 fly launch
 ```
