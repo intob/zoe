@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
@@ -28,18 +29,6 @@ func main() {
 	file.Close()
 	fmt.Println("reading events from", filename)
 
-	// setup min report interval
-	minReportInterval := time.Second * 10
-	minReportIntervalEnv, ok := os.LookupEnv("ZOE_MIN_REPORT_INTERVAL")
-	if ok {
-		var err error
-		minReportInterval, err = time.ParseDuration(minReportIntervalEnv)
-		if err != nil {
-			panic(err)
-		}
-	}
-	fmt.Println("min report interval set to", minReportInterval)
-
 	// setup block size
 	blockSize := 10000
 	blockSizeEnv, ok := os.LookupEnv("ZOE_BLOCK_SIZE")
@@ -52,10 +41,35 @@ func main() {
 	}
 	fmt.Println("block size set to", blockSize)
 
+	// setup worker pool size
+	workerPoolSize := runtime.NumCPU()
+	workerPoolSizeEnv, ok := os.LookupEnv("ZOE_WORKER_POOL_SIZE")
+	if ok {
+		var err error
+		workerPoolSize, err = strconv.Atoi(workerPoolSizeEnv)
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("worker pool size set to", workerPoolSize)
+
+	// setup min report interval
+	minReportInterval := time.Second * 5
+	minReportIntervalEnv, ok := os.LookupEnv("ZOE_MIN_REPORT_INTERVAL")
+	if ok {
+		var err error
+		minReportInterval, err = time.ParseDuration(minReportIntervalEnv)
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("min report interval set to", minReportInterval)
+
 	// setup report runner
 	runnerCfg := &report.RunnerCfg{
 		Filename:          filename,
 		BlockSize:         blockSize,
+		WorkerPoolSize:    workerPoolSize,
 		MinReportInterval: minReportInterval,
 		Jobs: map[string]*report.Job{
 			"views-cutoff1000-last30d": {
@@ -75,9 +89,9 @@ func main() {
 					},
 				},
 			},
-			"subset-views-max100k": {
+			"subset-views-max10k": {
 				Report: &report.Subset{
-					Limit: 100000,
+					Limit: 10000,
 					Filter: func(e *ev.Ev) bool {
 						return e.EvType == ev.EvType_LOAD
 					},

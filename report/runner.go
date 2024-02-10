@@ -3,35 +3,39 @@ package report
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/swissinfo-ch/zoe/ev"
+	"github.com/swissinfo-ch/zoe/worker"
 	"google.golang.org/protobuf/proto"
 )
 
 type RunnerCfg struct {
 	Filename          string
 	BlockSize         int
-	Jobs              map[string]*Job
+	WorkerPoolSize    int
 	MinReportInterval time.Duration
+	Jobs              map[string]*Job
 }
 
 type Runner struct {
-	results                 map[string][]byte
-	jobs                    map[string]*Job
-	jobDone                 chan *JobDone
-	events                  chan *ev.Ev
 	filename                string
 	blockSize               int
+	workerPoolSize          int
+	minReportInterval       time.Duration
+	jobs                    map[string]*Job
+	results                 map[string][]byte
+	jobDone                 chan *JobDone
+	events                  chan *ev.Ev
 	fileSize                int64
 	currentReportEventCount uint32
 	lastReportEventCount    uint32
 	lastReportDuration      time.Duration
 	lastReportTime          time.Time
-	minReportInterval       time.Duration
 }
 
 type Job struct {
@@ -47,17 +51,18 @@ type JobDone struct {
 // NewRunner creates & starts a new report runner
 func NewRunner(cfg *RunnerCfg) *Runner {
 	r := &Runner{
-		results:           make(map[string][]byte),
 		filename:          cfg.Filename,
 		blockSize:         cfg.BlockSize,
-		jobs:              cfg.Jobs,
+		workerPoolSize:    cfg.WorkerPoolSize,
 		minReportInterval: cfg.MinReportInterval,
+		jobs:              cfg.Jobs,
+		results:           make(map[string][]byte),
 	}
 	// Start the report runner
 	go func() {
 		for {
 			tStart := time.Now()
-			r.Run()
+			r.run()
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
 			evPerSec := FmtCount(uint32(float64(r.currentReportEventCount) / r.lastReportDuration.Seconds()))
@@ -74,23 +79,6 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 		}
 	}()
 	return r
-}
-
-// Run generates a report for each job
-func (r *Runner) Run() {
-	r.jobDone = make(chan *JobDone)
-	// TUNING: 2024-02-09
-	// buffer size equal to block size is optimal
-	r.events = make(chan *ev.Ev, r.blockSize)
-	for jobName, job := range r.jobs {
-		// TUNING: 2024-02-10
-		// job events chan buffer size 2 seems optimal,
-		// otherwise sendEventsCollectResults will block
-		job.events = make(chan *ev.Ev, 2)
-		go r.generateJobReport(job, jobName)
-	}
-	go r.readEventsFromFile()
-	r.sendEventsCollectResults()
 }
 
 // Jobs returns the jobs
@@ -129,6 +117,23 @@ func (r *Runner) FileSize() int64 {
 	return r.fileSize
 }
 
+// run generates a report for each job
+func (r *Runner) run() {
+	r.jobDone = make(chan *JobDone)
+	// TUNING: 2024-02-09
+	// buffer size equal to block size is optimal
+	r.events = make(chan *ev.Ev, r.blockSize)
+	for jobName, job := range r.jobs {
+		// TUNING: 2024-02-10
+		// job events chan buffer size 2 seems optimal,
+		// otherwise sendEventsCollectResults will block
+		job.events = make(chan *ev.Ev, 1)
+		go r.generateJobReport(job, jobName)
+	}
+	go r.readEventsFromFile()
+	r.sendEventsCollectResults(context.TODO())
+}
+
 // generateReport generates a report for a job
 func (r *Runner) generateJobReport(job *Job, jobName string) {
 	report, err := job.Report.Generate(job.events)
@@ -141,54 +146,64 @@ func (r *Runner) generateJobReport(job *Job, jobName string) {
 	}
 }
 
-// sendEventsCollectResults sends events to the jobs and collects the results
-func (r *Runner) sendEventsCollectResults() {
+func (r *Runner) sendEventsCollectResults(ctx context.Context) {
+	workerPool := worker.NewPool(r.workerPoolSize)
+	workerPool.Start()
+
 	countDone := 0
 	runningJobs := make(map[string]*Job, len(r.jobs))
+
+	// Copy job references to manage individual job event channels safely
 	for name, job := range r.jobs {
 		runningJobs[name] = job
 	}
-	eventChanBlockedReads := 0
-	jobEventChanBlockedWrites := 0
+
 loop:
 	for {
 		select {
 		case e, ok := <-r.events:
 			if !ok {
-				for name, job := range runningJobs {
-					close(job.events)
-					delete(runningJobs, name)
-				}
-				continue
+				// If the events channel is closed, it's time to cleanup and exit
+				break loop
 			}
-			for _, job := range runningJobs {
-				select {
-				case job.events <- e:
-					// event sent
-				// TUINING: 2024-02-10
-				// wait up to 1ms for job events chan to be ready,
-				// otherwise, bin event & increment counter
-				// TODO: try running each send concurrently
-				case <-time.After(time.Millisecond):
-					jobEventChanBlockedWrites++
+			// Dispatch a job to handle the event
+			workerPool.Dispatch(func() {
+				for _, job := range runningJobs {
+					// Before attempting to send, check if context has been cancelled
+					if ctx.Err() != nil {
+						return // Avoid sending on closed channel if shutdown is initiated
+					}
+					select {
+					case job.events <- e:
+						// Event sent successfully
+					case <-time.After(time.Millisecond * 100):
+						// Optionally handle the timeout case here
+					case <-ctx.Done():
+						// Shutdown signal received, exit the dispatched job
+						return
+					}
 				}
-			}
+			})
 		case j := <-r.jobDone:
 			r.results[j.Name] = j.Result
 			delete(runningJobs, j.Name)
 			countDone++
 			if countDone >= len(r.jobs) {
+				// All jobs are done, it's time to exit the loop
 				break loop
 			}
-		case <-time.After(time.Millisecond):
-			eventChanBlockedReads++
+		case <-ctx.Done():
+			// Shutdown signal received, exit the loop
+			break loop
 		}
 	}
-	if eventChanBlockedReads > 100 {
-		fmt.Println(" eventChanBlockedReads", eventChanBlockedReads)
-	}
-	if jobEventChanBlockedWrites > 100 {
-		fmt.Println(" jobEventChanBlockedWrites", jobEventChanBlockedWrites)
+
+	// Wait for all dispatched jobs to finish before closing job event channels
+	workerPool.StopAndWait() // Assuming your worker pool has a Wait method to wait for all dispatched jobs to complete
+
+	// Safely close all job event channels after all work is done
+	for _, job := range runningJobs {
+		close(job.events)
 	}
 }
 

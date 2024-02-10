@@ -13,8 +13,9 @@ primary_region = 'ams'
   strategy = 'immediate'
 
 [env]
-  ZOE_BLOCK_SIZE = '10000'
   ZOE_EVENTS_FILE = '/data/events'
+  ZOE_BLOCK_SIZE = '10000'
+  ZOE_WORKER_POOL_SIZE = '8'
   ZOE_MIN_REPORT_INTERVAL = '30s'
 
 [[mounts]]
