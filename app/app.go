@@ -15,26 +15,28 @@ import (
 )
 
 type App struct {
-	ctx                 context.Context
-	clients             map[string]*client // writer:addr or reader:addr
-	clientMu            sync.Mutex
-	events              chan *ev.Ev
-	filename            string
-	reportRunner        *report.Runner
-	reportNames         []string
-	commit              string
-	blockSize           int
-	rateLimitBucketSize int
-	numCPU              int
+	ctx            context.Context
+	clients        map[string]*client // writer:addr or reader:addr
+	clientMu       sync.Mutex
+	events         chan *ev.Ev
+	filename       string
+	reportRunner   *report.Runner
+	reportNames    []string
+	commit         string
+	blockSize      int
+	rateLimitEvery time.Duration
+	rateLimitBurst int
+	numCPU         int
 }
 
 type AppCfg struct {
-	Filename            string
-	BlockSize           int
-	ReportRunner        *report.Runner
-	ReportNames         []string
-	Ctx                 context.Context
-	RateLimitBucketSize int
+	Ctx            context.Context
+	Filename       string
+	BlockSize      int
+	ReportRunner   *report.Runner
+	ReportNames    []string
+	RateLimitEvery time.Duration
+	RateLimitBurst int
 }
 
 type client struct {
@@ -45,16 +47,17 @@ type client struct {
 // NewApp creates & starts a new App.
 func NewApp(cfg *AppCfg) *App {
 	a := &App{
-		filename:            cfg.Filename,
-		clients:             make(map[string]*client),
-		clientMu:            sync.Mutex{},
-		events:              make(chan *ev.Ev, 100),
-		reportRunner:        cfg.ReportRunner,
-		reportNames:         cfg.ReportNames,
-		ctx:                 cfg.Ctx,
-		blockSize:           cfg.BlockSize,
-		rateLimitBucketSize: cfg.RateLimitBucketSize,
-		numCPU:              runtime.NumCPU(),
+		ctx:            cfg.Ctx,
+		filename:       cfg.Filename,
+		clients:        make(map[string]*client),
+		clientMu:       sync.Mutex{},
+		events:         make(chan *ev.Ev, 100),
+		reportRunner:   cfg.ReportRunner,
+		reportNames:    cfg.ReportNames,
+		blockSize:      cfg.BlockSize,
+		rateLimitEvery: cfg.RateLimitEvery,
+		rateLimitBurst: cfg.RateLimitBurst,
+		numCPU:         runtime.NumCPU(),
 	}
 	commit, err := os.ReadFile("commit")
 	if err != nil {
@@ -95,8 +98,8 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 			a.handleGetReportResult(w, r)
 		case "/js":
 			a.handleGetJS(w, r)
-		case "/stat":
-			a.handleGetStat(w, r)
+		case "/status":
+			a.handleGetStatus(w, r)
 		default:
 			http.ServeFile(w, r, "assets"+r.URL.Path)
 		}
@@ -145,7 +148,7 @@ func (a *App) getRateLimiter(r *http.Request) *rate.Limiter {
 	key := r.Method + addr
 	v, exists := a.clients[key]
 	if !exists {
-		limiter := rate.NewLimiter(rate.Every(time.Second), a.rateLimitBucketSize)
+		limiter := rate.NewLimiter(rate.Every(a.rateLimitEvery), a.rateLimitBurst)
 		a.clients[key] = &client{limiter, time.Now()}
 		return limiter
 	}

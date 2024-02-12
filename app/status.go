@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// Stat is a JSON-serializable struct for the /stat endpoint.
-type Stat struct {
+// Status is a JSON-serializable struct for the /stat endpoint.
+type Status struct {
 	FileSize                int64  `json:"fileSize"`                // in bytes
 	CurrentReportEventCount uint32 `json:"currentReportEventCount"` // number of events in the current report so far
 	LastReportEventCount    uint32 `json:"lastReportEventCount"`    // number of events in the last report
@@ -16,10 +16,10 @@ type Stat struct {
 	NumCPU                  int    `json:"numCPU"`                  // number of CPU cores
 }
 
-// handleGetStat is the HTTP handler for the /stat endpoint.
-func (a *App) handleGetStat(w http.ResponseWriter, r *http.Request) {
+// handleGetStatus is the HTTP handler for the /stat endpoint.
+func (a *App) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	s := &Stat{
+	s := &Status{
 		FileSize:                a.reportRunner.FileSize(),
 		CurrentReportEventCount: a.reportRunner.CurrentReportEventCount(),
 		LastReportEventCount:    a.reportRunner.LastReportEventCount(),

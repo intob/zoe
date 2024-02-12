@@ -101,19 +101,21 @@ func main() {
 	}
 	reportsRunner := report.NewRunner(runnerCfg)
 
-	// setup app
 	reportNames := make([]string, 0, len(runnerCfg.Jobs))
 	for name := range runnerCfg.Jobs {
 		reportNames = append(reportNames, name)
 	}
+
 	ctx := getCtx()
+
 	app.NewApp(&app.AppCfg{
-		Filename:            filename,
-		ReportRunner:        reportsRunner,
-		ReportNames:         reportNames,
-		Ctx:                 ctx,
-		BlockSize:           blockSize,
-		RateLimitBucketSize: 100,
+		Ctx:            ctx,
+		Filename:       filename,
+		BlockSize:      blockSize,
+		ReportRunner:   reportsRunner,
+		ReportNames:    reportNames,
+		RateLimitEvery: time.Second,
+		RateLimitBurst: 100,
 	})
 
 	// wait for context to be done
