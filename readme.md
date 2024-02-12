@@ -7,7 +7,7 @@ The app runs directly on the Linux kernel. The built image is ~7.6MB.
 
 ## Run locally
 ```bash
-git rev-parse HEAD >> commit # commit id is served
+git rev-parse HEAD > commit # commit id is served
 go run .
 ```
 
