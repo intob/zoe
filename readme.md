@@ -29,7 +29,7 @@ This will update the DNS records in the swissinfo.ch hosted zone & issue a TLS c
 
 ## Maximum message size calculation
 Adding the maximum sizes together:
-
+```
 EvType evType: 2 bytes
 uint32 time: 6 bytes
 fixed32 usr: 5 bytes
@@ -37,7 +37,7 @@ fixed32 sess: 5 bytes
 uint32 cid: 6 bytes
 optional uint32 pageSeconds: 6 bytes (if present)
 optional float scrolled: 5 bytes (if present)
-
+```
 Total maximum size without optional fields: **24 bytes**
 Total maximum size with all optional fields: **35 bytes**
 
