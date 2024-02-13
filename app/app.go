@@ -105,6 +105,8 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	case "POST":
 		a.handlePost(w, r)
+	case "OPTIONS":
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -133,6 +135,7 @@ func (a *App) corsMiddleware(next http.Handler) http.Handler {
 		// TODO: check origin header is swissinfo.ch
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "X_TYPE,X_USR,X_SESS,X_CID,X_SCROLLED,X_PAGE_SECONDS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
 		next.ServeHTTP(w, r)
 	})
 }

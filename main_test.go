@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/swissinfo-ch/zoe/report"
+	"github.com/intob/jfmt"
 )
 
 const (
@@ -63,7 +63,7 @@ func testIntegration(origin string, concurrency, count int) {
 	cids := readFileLines(".testdata/cids.txt")
 	// make requests
 	fmt.Printf("making %s requests to %s using %d workers\n",
-		report.FmtCount(uint32(count)), origin, concurrency)
+		jfmt.FmtCount32(uint32(count)), origin, concurrency)
 	randUsr := strconv.FormatUint(uint64(rand.Uint32()), 10)
 	go func() {
 		for i := 0; i < count; i++ {
@@ -91,15 +91,19 @@ func testIntegration(origin string, concurrency, count int) {
 		}
 	}
 	duration := time.Since(tStart)
-	evPerSec := report.FmtCount(uint32(float64(done) / duration.Seconds()))
+	evPerSec := jfmt.FmtCount32(uint32(float64(done) / duration.Seconds()))
 	fmt.Printf("\n%s done and %s errors in %s at %s ev/s\n",
-		report.FmtCount(uint32(done)), report.FmtCount(uint32(errs)), duration.String(), evPerSec)
+		jfmt.FmtCount32(uint32(done)),
+		jfmt.FmtCount32(uint32(errs)),
+		duration.String(),
+		evPerSec)
 }
 
 func printProgress(done, errs int) {
 	if done%10000 == 0 || errs%10 == 0 {
 		fmt.Printf("\r%s requests done, and %s errors",
-			report.FmtCount(uint32(done)), report.FmtCount(uint32(errs)))
+			jfmt.FmtCount32(uint32(done)),
+			jfmt.FmtCount32(uint32(errs)))
 		fmt.Print("\033[0K") // flush line
 	}
 }

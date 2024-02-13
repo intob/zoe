@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/intob/jfmt"
 	"github.com/swissinfo-ch/zoe/ev"
 	"github.com/swissinfo-ch/zoe/worker"
 )
@@ -61,12 +62,12 @@ func NewRunner(cfg *RunnerCfg) *Runner {
 			r.run(context.TODO())
 			r.lastReportDuration = time.Since(tStart)
 			r.lastReportTime = time.Now()
-			evPerSec := FmtCount(uint32(float64(r.lastReportEventCount) / r.lastReportDuration.Seconds()))
+			evPerSec := jfmt.FmtCount32(uint32(float64(r.lastReportEventCount) / r.lastReportDuration.Seconds()))
 			fmt.Printf("\r%s // %s // reporting took %v for %s evs at %s ev/s",
 				r.lastReportTime.Format(time.RFC3339),
-				FmtFileSize(r.fileSize),
+				jfmt.FmtSize64(uint64(r.fileSize)),
 				r.lastReportDuration,
-				FmtCount(r.lastReportEventCount),
+				jfmt.FmtCount32(r.lastReportEventCount),
 				evPerSec)
 			fmt.Print("\033[0K") // flush line
 			// limit report running rate
