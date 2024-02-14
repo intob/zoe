@@ -3,6 +3,8 @@ package app
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/intob/jfmt"
 )
 
 // Status is a JSON-serializable struct for the /stat endpoint.
@@ -23,7 +25,7 @@ func (a *App) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 		FileSize:                a.reportRunner.FileSize(),
 		CurrentReportEventCount: a.reportRunner.CurrentReportEventCount(),
 		LastReportEventCount:    a.reportRunner.LastReportEventCount(),
-		LastReportDuration:      a.reportRunner.LastReportDuration().String(),
+		LastReportDuration:      jfmt.FmtDuration(a.reportRunner.LastReportDuration()),
 		LastReportTime:          a.reportRunner.LastReportTime().Unix(),
 		Commit:                  a.commit,
 		NumCPU:                  a.numCPU,

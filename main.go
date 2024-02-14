@@ -81,9 +81,9 @@ func main() {
 					},
 				},
 			},
-			"views-top10-last30d": {
+			"views-top100-last30d": {
 				Report: &report.Top{
-					N: 10,
+					N: 100,
 					MinEvTime: func() time.Time {
 						return time.Now().Add(-time.Hour * 24 * 30)
 					},

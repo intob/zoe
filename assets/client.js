@@ -6,7 +6,7 @@ function randCidForNow() {
   return Math.floor(Math.random() * 10)
 }
 
-// TODO: get the current article id
+// TODO get the current article id
 const cid = randCidForNow()
 
 // set user and session id
@@ -31,7 +31,8 @@ setInterval(async () => {
   })
 }, 5000)
 
-// send scroll info on unload
+// on beforeunload, send UNLOAD with scroll info
+// TODO measure max scroll depth
 window.addEventListener("beforeunload", async() => {
   // make request
   await fetch("https://zoe.swissinfo.ch", {
@@ -45,6 +46,7 @@ window.addEventListener("beforeunload", async() => {
   })
 })
 
+// send LOAD
 fetch("https://zoe.swissinfo.ch", {
   method: "POST",
   headers: {
