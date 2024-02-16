@@ -136,8 +136,6 @@ func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 
 func (a *App) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("corsMiddleware", r.Header.Get("Origin"), r.Header.Get("Referer"))
-
 		origin := r.Header.Get("Origin")
 		for _, o := range a.allowedOrigins {
 			if o == origin {
