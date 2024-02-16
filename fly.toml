@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for zoe on 2024-02-10T09:07:16+01:00
+# fly.toml app configuration file generated for swi-zoe on 2024-02-16T09:59:11+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'zoe'
+app = 'swi-zoe'
 primary_region = 'ams'
 
 [build]
@@ -13,10 +13,10 @@ primary_region = 'ams'
   strategy = 'immediate'
 
 [env]
-  ZOE_EVENTS_FILE = '/data/events'
   ZOE_BLOCK_SIZE = '10000'
-  ZOE_WORKER_POOL_SIZE = '8'
+  ZOE_EVENTS_FILE = '/data/events'
   ZOE_MIN_REPORT_INTERVAL = '10s'
+  ZOE_WORKER_POOL_SIZE = '8'
 
 [[mounts]]
   source = 'data'
@@ -37,6 +37,4 @@ primary_region = 'ams'
     soft_limit = 800000
 
 [[vm]]
-  cpu_kind = 'shared'
-  cpus = 1
-  memory_mb = 256
+  size = 'shared-cpu-1x'
