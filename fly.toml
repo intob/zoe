@@ -17,6 +17,8 @@ primary_region = 'ams'
   ZOE_EVENTS_FILE = '/data/events'
   ZOE_MIN_REPORT_INTERVAL = '10s'
   ZOE_WORKER_POOL_SIZE = '8'
+  # order origins for performance (most used first)
+  ZOE_ALLOWED_ORIGINS = 'https://www.swissinfo.ch,https://toolbox.prod.swi-services.ch,https://toolbox.stg.swi-services.ch,https://toolbox.int.swi-services.ch,https://toolbox.dev.swi-services.ch,http://localhost:1618'
 
 [[mounts]]
   source = 'data'

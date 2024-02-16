@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,6 +24,14 @@ func main() {
 		laddr = laddrEnv
 	}
 	fmt.Println("listening http on", laddr)
+
+	// allowed origins
+	allowedOrigins := []string{}
+	allowedOriginsEnv, ok := os.LookupEnv("ZOE_ALLOWED_ORIGINS")
+	if ok {
+		allowedOrigins = strings.Split(allowedOriginsEnv, ",")
+	}
+	fmt.Println("allowed origins set to", allowedOrigins)
 
 	// setup events file
 	filename := "events"
@@ -125,6 +134,7 @@ func main() {
 		ReportNames:    reportNames,
 		RateLimitEvery: time.Second,
 		RateLimitBurst: 100,
+		AllowedOrigins: allowedOrigins,
 	})
 
 	// wait for context to be done

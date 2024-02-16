@@ -28,6 +28,7 @@ type App struct {
 	rateLimitEvery time.Duration
 	rateLimitBurst int
 	numCPU         int
+	allowedOrigins []string
 }
 
 type AppCfg struct {
@@ -39,6 +40,7 @@ type AppCfg struct {
 	ReportNames    []string
 	RateLimitEvery time.Duration
 	RateLimitBurst int
+	AllowedOrigins []string
 }
 
 type client struct {
@@ -50,6 +52,7 @@ type client struct {
 func NewApp(cfg *AppCfg) *App {
 	a := &App{
 		ctx:            cfg.Ctx,
+		laddr:          cfg.Laddr,
 		filename:       cfg.Filename,
 		clients:        make(map[string]*client),
 		clientMu:       sync.Mutex{},
@@ -60,6 +63,7 @@ func NewApp(cfg *AppCfg) *App {
 		rateLimitEvery: cfg.RateLimitEvery,
 		rateLimitBurst: cfg.RateLimitBurst,
 		numCPU:         runtime.NumCPU(),
+		allowedOrigins: cfg.AllowedOrigins,
 	}
 	commit, err := os.ReadFile("commit")
 	if err != nil {
@@ -107,8 +111,6 @@ func (a *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	case "POST":
 		a.handlePost(w, r)
-	case "OPTIONS":
-		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -134,10 +136,22 @@ func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
 
 func (a *App) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: check origin header is swissinfo.ch
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		fmt.Println("corsMiddleware", r.Header.Get("Origin"), r.Header.Get("Referer"))
+
+		origin := r.Header.Get("Origin")
+		for _, o := range a.allowedOrigins {
+			if o == origin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				break
+			}
+		}
 		w.Header().Set("Access-Control-Allow-Headers", "X_TYPE,X_USR,X_SESS,X_CID,X_SCROLLED,X_PAGE_SECONDS")
 		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		// Continue to the next handler
 		next.ServeHTTP(w, r)
 	})
 }
