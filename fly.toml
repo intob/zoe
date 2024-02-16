@@ -25,7 +25,7 @@ primary_region = 'ams'
 
 [[services]]
   protocol = 'tcp'
-  internal_port = 8080
+  internal_port = 1618
 
 [[services.ports]]
     port = 443

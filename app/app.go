@@ -16,6 +16,7 @@ import (
 
 type App struct {
 	ctx            context.Context
+	laddr          string
 	clients        map[string]*client // writer:addr or reader:addr
 	clientMu       sync.Mutex
 	events         chan *ev.Ev
@@ -31,6 +32,7 @@ type App struct {
 
 type AppCfg struct {
 	Ctx            context.Context
+	Laddr          string
 	Filename       string
 	BlockSize      int
 	ReportRunner   *report.Runner
@@ -76,8 +78,8 @@ func (a *App) serve() {
 	mux.Handle("/", a.rateLimitMiddleware(
 		a.corsMiddleware(
 			http.HandlerFunc(a.handleRequest))))
-	fmt.Println("app listening http on :8080")
-	server := &http.Server{Addr: ":8080", Handler: mux}
+	fmt.Println("app listening http on", a.laddr)
+	server := &http.Server{Addr: a.laddr, Handler: mux}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(fmt.Sprintf("failed to listen http: %v\n", err))

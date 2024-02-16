@@ -16,6 +16,14 @@ import (
 )
 
 func main() {
+	// laddr
+	laddr := ":1618"
+	laddrEnv, ok := os.LookupEnv("ZOE_LADDR")
+	if ok {
+		laddr = laddrEnv
+	}
+	fmt.Println("listening http on", laddr)
+
 	// setup events file
 	filename := "events"
 	filenameEnv, ok := os.LookupEnv("ZOE_EVENTS_FILE")
@@ -110,6 +118,7 @@ func main() {
 
 	app.NewApp(&app.AppCfg{
 		Ctx:            ctx,
+		Laddr:          laddr,
 		Filename:       filename,
 		BlockSize:      blockSize,
 		ReportRunner:   reportsRunner,
