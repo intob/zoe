@@ -146,7 +146,6 @@ func (r *Runner) generateJobReport(job *Job, jobName string) {
 
 func (r *Runner) sendEventsCollectResults(ctx context.Context) {
 	workerPool := worker.NewPool(r.workerPoolSize)
-	workerPool.Start()
 
 	runningJobs := make(map[string]*Job, len(r.jobs))
 

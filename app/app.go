@@ -15,8 +15,9 @@ import (
 )
 
 type App struct {
-	ctx            context.Context
-	laddr          string
+	ctx   context.Context
+	laddr string
+	// PROOF clients stored in memory
 	clients        map[string]*client // writer:addr or reader:addr
 	clientMu       sync.Mutex
 	events         chan *ev.Ev
@@ -182,6 +183,7 @@ func (a *App) cleanupVisitors() {
 		case <-time.After(10 * time.Second):
 			a.clientMu.Lock()
 			for key, client := range a.clients {
+				// PROOF clients deleted after 10 seconds without request
 				if time.Since(client.lastSeen) > 10*time.Second {
 					delete(a.clients, key)
 				}

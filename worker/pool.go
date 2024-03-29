@@ -5,52 +5,42 @@ import (
 	"sync"
 )
 
-// Task is a function that performs a job.
-type Task func()
-
-// Pool manages a pool of workers to execute tasks.
+// Pool manages a pool of workers that execute tasks.
 type Pool struct {
-	tasks        chan Task
+	tasks        chan func()
 	wg           sync.WaitGroup
-	numOfWorkers int
 	mu           sync.Mutex
 	shuttingDown bool
 }
 
-// NewWorkerPool creates a new WorkerPool.
+// NewWorkerPool creates a new worker pool.
 func NewPool(numOfWorkers int) *Pool {
-	return &Pool{
-		numOfWorkers: numOfWorkers,
+	wp := &Pool{
+		tasks: make(chan func()),
 	}
-}
-
-// Start initializes the workers and makes them ready to receive tasks.
-func (wp *Pool) Start() {
-	wp.tasks = make(chan Task)
-	for i := 0; i < wp.numOfWorkers; i++ {
+	for i := 0; i < numOfWorkers; i++ {
 		wp.wg.Add(1)
 		go wp.worker()
 	}
+	return wp
 }
 
-// StopAndWait signals the workers to stop and waits for all of them to finish.
+// StopAndWait signals the workers to stop, and waits for all to finish.
 func (p *Pool) StopAndWait() {
 	p.mu.Lock()
 	p.shuttingDown = true
 	close(p.tasks)
 	p.mu.Unlock()
-	p.wg.Wait() // Wait for all worker goroutines to finish
+	p.wg.Wait()
 }
 
 // Dispatch sends a task to the worker pool.
 func (p *Pool) Dispatch(task func()) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
 	if p.shuttingDown {
 		return fmt.Errorf("worker pool is shutting down")
 	}
-
 	select {
 	case p.tasks <- task:
 		return nil
